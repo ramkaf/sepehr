@@ -1,0 +1,15 @@
+export const keysToRemove = [
+  'DeviceID',
+  'agent',
+  'input',
+  'host',
+  'tags',
+  'log',
+  '@version',
+  '@timestamp',
+  'event',
+  'ecs',
+  'is_sent',
+  'message',
+  'fields',
+];
