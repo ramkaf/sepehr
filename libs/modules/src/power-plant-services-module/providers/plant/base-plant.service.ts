@@ -121,7 +121,7 @@ export abstract class BasePlantService {
   }
   async isolationTodayLastValue(
     entity: EntityModel,
-    entityField:EntityField
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const unit = 'kWh/㎡';

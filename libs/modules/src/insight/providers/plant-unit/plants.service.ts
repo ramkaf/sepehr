@@ -176,7 +176,7 @@ export class PlantService {
       );
     }
   }
-    async resolvePlantPerformanceRatioCredential(plantId: number) {
+  async resolvePlantPerformanceRatioCredential(plantId: number) {
     try {
       const commissioningYearDataBaseResponse =
         await this.entityFieldService.fetchStaticValueByTag(
@@ -198,73 +198,22 @@ export class PlantService {
         );
       }
 
-      const commissioningYear = parseFloat(
-        commissioningYearDataBaseResponse,
+      const commissioningYear = parseFloat(commissioningYearDataBaseResponse);
+      const annualPerformanceDecreasePercent = parseFloat(
+        annualPerformanceDecreasePercentDataBaseResponse,
       );
-      const annualPerformanceDecreasePercent = parseFloat(annualPerformanceDecreasePercentDataBaseResponse);
 
       if (isNaN(annualPerformanceDecreasePercent) || isNaN(commissioningYear)) {
         throw new InternalServerErrorException(
-              'commissioning year or annual performance decrease percent ratio is missing or undefined.',
+          'commissioning year or annual performance decrease percent ratio is missing or undefined.',
         );
       }
       return { commissioningYear, annualPerformanceDecreasePercent };
     } catch (error) {
       throw new InternalServerErrorException(
-         'commissioning year or annual performance decrease percent ratio is missing or undefined.',
+        'commissioning year or annual performance decrease percent ratio is missing or undefined.',
       );
     }
-  }
-  async isInTheDay(plantId: number) {
-    const plant = await this.fetchWithFleetByPlantId(plantId);
-    const plantIndex = generatePlantIndex(plant.entityTag);
-    const hvEntities = await this.fetchPlantHvEntity(plantId);
-    const hvDevice = hvEntities.map((item) => item.entityTag.split(':')[2]);
-    const elasticQuery = {
-      query: {
-        bool: {
-          must: [
-            {
-              range: {
-                DateTime: {
-                  gte: 'now-5m',
-                  lte: 'now',
-                },
-              },
-            },
-            {
-              terms: {
-                'DeviceName.keyword': hvDevice,
-              },
-            },
-          ],
-        },
-      },
-      aggs: {
-        devices: {
-          terms: {
-            field: 'DeviceName.keyword',
-            size: 10,
-          },
-          aggs: {
-            power: {
-              top_hits: {
-                _source: ['P_total', 'DateTime'],
-                sort: [{ DateTime: { order: 'desc' } }],
-                size: 1,
-              },
-            },
-          },
-        },
-      },
-    };
-    const response = await this.elasticService.search(plantIndex, elasticQuery);
-    let power = 0;
-    response.aggregations.devices.buckets.forEach((item) => {
-      power = power + item.power.hits.hits[0]._source['P_total'];
-    });
-    if (power < 0) return true;
-    return false;
   }
   async getPlants(): Promise<EntityModel[] | null> {
     const plantEntityTypes = await this.entityTypeRepository.find({

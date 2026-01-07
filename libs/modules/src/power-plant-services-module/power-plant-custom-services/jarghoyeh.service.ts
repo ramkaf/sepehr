@@ -482,7 +482,10 @@ export class JarghoyehService extends StringPlantService {
     const substationResult = await Promise.all(
       substationEntities.map(async (substation: EntityModel) => {
         const { value: performance, Date: DateTime } =
-          await this.substationPerformanceLastValue(substation,{} as EntityField);
+          await this.substationPerformanceLastValue(
+            substation,
+            {} as EntityField,
+          );
         const { value: subEnergyLossLess } =
           await this.substaionRawProductionEnergyLastValue(substation);
         const DIState = await this.stateService.fetchActiveState(
@@ -504,8 +507,14 @@ export class JarghoyehService extends StringPlantService {
     );
     const plant = entities.find((item) => item.entityType.tag === 'Plant');
     if (!plant) throw new InternalServerErrorException('something goes wrong');
-    const { value: performance, Date } = await this.performanceLastValue(plant , {} as EntityField);
-    const { value: power } = await this.powerLastValue(plant , {} as EntityField);
+    const { value: performance, Date } = await this.performanceLastValue(
+      plant,
+      {} as EntityField,
+    );
+    const { value: power } = await this.powerLastValue(
+      plant,
+      {} as EntityField,
+    );
     const { value: energyToday } = await this.energyExportTodayLastValue(plant);
     const meterStatus = await this.statusService.fetchMetersStatus(
       JarghoyehService.PLANT_TAG,

@@ -3,7 +3,7 @@ export const buildLatestDeviceFieldElasticQuery = (
   fieldName: string | string[],
 ) => {
   const fields: string[] = Array.isArray(fieldName) ? fieldName : [fieldName];
- 
+
   return {
     _source: [...fields, 'DateTime', 'DeviceName'],
     query: {
@@ -14,13 +14,13 @@ export const buildLatestDeviceFieldElasticQuery = (
           },
           {
             range: {
-            DateTime: {
+              DateTime: {
                 gte: 'now-5m',
                 lte: 'now',
-                time_zone: 'Asia/Tehran'
-              }
-            }
-          }
+                time_zone: 'Asia/Tehran',
+              },
+            },
+          },
         ],
       },
     },

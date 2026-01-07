@@ -33,6 +33,7 @@ import {
   PeriodEnum,
 } from 'libs/interfaces';
 import {
+  generatePlantIndex,
   getFormattedDateTime,
   getNestedValue,
   getWeatherFieldElasticPath,
@@ -105,7 +106,10 @@ export abstract class StringPlantService extends BasePlantService {
     );
   }
 
-  async powerLastValue(entity: EntityModel , entityField : EntityField): Promise<IResponseLastValue> {
+  async powerLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
     try {
       const hvsEntities = await this.plantService.fetchPlantHvEntity(
         this.plantId,
@@ -572,7 +576,10 @@ export abstract class StringPlantService extends BasePlantService {
     }
   }
 
-  async irradiationLastValue(entity: EntityModel , entityField:EntityField): Promise<IResponseLastValue> {
+  async irradiationLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
     try {
       const irradiationDevices =
         await this.plantService.fetchPlantIrradiationDevices(this.plantId);
@@ -612,62 +619,72 @@ export abstract class StringPlantService extends BasePlantService {
     }
   }
   async irradiationDailyAllValues(
-  entity: EntityModel,
+    entity: EntityModel,
     entityField: EntityField,
-    dateDetails: IDateDetails
-) {
-  try {
-    const { range, date_histogram } = setTimeRange(dateDetails);
-    const should = await this.dayLightService.generateShouldClause(this.plantTag , dateDetails);
-    const irradiationEntities = await this.plantService.fetchPlantIrradiationDevices(this.plantId)
-    const irradiationDevices = irradiationEntities.map(item => item.entityTag.split(":")[2])
-    const body = {
-      query: {
-        bool: {
-          must: [
-            {
-              terms: {
-                'DeviceName.keyword': irradiationDevices,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const should = await this.dayLightService.generateShouldClause(
+        this.plantTag,
+        dateDetails,
+      );
+      const irradiationEntities =
+        await this.plantService.fetchPlantIrradiationDevices(this.plantId);
+      const irradiationDevices = irradiationEntities.map(
+        (item) => item.entityTag.split(':')[2],
+      );
+      const body = {
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': irradiationDevices,
+                },
               },
-            },
-            {
-              range,
-            },
-          ],
-          should,
-          minimum_should_match: 1,
+              {
+                range,
+              },
+            ],
+            should,
+            minimum_should_match: 1,
+          },
         },
-      },
-      size: 0, // histogram → no docs needed
-      aggs: {
-        intervals: {
-          date_histogram, // your existing histogram settings
-          aggs: {
-            irradiance: {
-              avg: {
-                field: this.irradiationParameter,
+        size: 0, // histogram → no docs needed
+        aggs: {
+          intervals: {
+            date_histogram, // your existing histogram settings
+            aggs: {
+              irradiance: {
+                avg: {
+                  field: this.irradiationParameter,
+                },
               },
             },
           },
         },
-      },
-    };
-    const response = await this.elasticService.search(this.plantIndex , body)
-    const mapped:IMappedAllValueResult = response.aggregations.intervals.buckets.map((item) => {
-      return {
-        value : item.irradiance?.value ?? 0,
-        DateTime :  item.key_as_string,
-      }
-    });
-    return this.curveService.buildCurveWithOneValue(mapped , MaskFunctionsEnum.NumberStringToNFixedNumber)
-  } catch (error) {
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult =
+        response.aggregations.intervals.buckets.map((item) => {
+          return {
+            value: item.irradiance?.value ?? 0,
+            DateTime: item.key_as_string,
+          };
+        });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
       console.error(
         `error in ${this.plantTag}: dailyIrradianceAllValues service `,
         error,
       );
       return this.allValueServicesDefaultExport();
+    }
   }
-}
   async irradiationAllValues(
     entity: EntityModel,
     entityField: EntityField,
@@ -713,7 +730,7 @@ export abstract class StringPlantService extends BasePlantService {
     }
   }
 
-  async performanceLastValue(entity: EntityModel , entityField : EntityField) {
+  async performanceLastValue(entity: EntityModel, entityField: EntityField) {
     try {
       const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
         this.plantId,
@@ -721,9 +738,11 @@ export abstract class StringPlantService extends BasePlantService {
       );
       if (!nominalPower) return this.lastValueServicesDefaultExport();
       const { value: irradiance, Date: irradianceDateTime } =
-        await this.irradiationLastValue(entity , entityField);
-      const { value: pTotal, Date: powerDateTime } =
-        await this.powerLastValue(entity,{} as EntityField);
+        await this.irradiationLastValue(entity, entityField);
+      const { value: pTotal, Date: powerDateTime } = await this.powerLastValue(
+        entity,
+        {} as EntityField,
+      );
       if (!pTotal || !irradiance) return this.lastValueServicesDefaultExport();
       const DateTime = irradianceDateTime || powerDateTime || NaN;
       let performance = 0;
@@ -1176,7 +1195,7 @@ export abstract class StringPlantService extends BasePlantService {
 
   async substationPerformanceLastValue(
     entity: EntityModel,
-    entityField : EntityField
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const { entityTag } = entity;
@@ -1195,7 +1214,10 @@ export abstract class StringPlantService extends BasePlantService {
       const device = `MV POWER METER SUB ${entityTag
         .split(':')[1]
         .slice(11, 12)}`;
-      const { value: irradiance } = await this.irradiationLastValue(entity , entityField);
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
       const elasticQuery = buildLatestDeviceFieldElasticQuery(
         device,
         'P_total',
@@ -1673,7 +1695,7 @@ export abstract class StringPlantService extends BasePlantService {
       return NaN;
     }
   }
-  async fethPower(): Promise<ICurve> {
+  async fetchPower(): Promise<ICurve> {
     try {
       const result = await this.powerAllValues(
         {} as EntityModel,
@@ -1693,9 +1715,12 @@ export abstract class StringPlantService extends BasePlantService {
     const { value: availability } = await this.availabilityLastValue({
       entityTag: this.plantTag,
     } as EntityModel);
-    const { value: performance } = await this.performanceLastValue({
-      entityTag: this.plantTag,
-    } as EntityModel , {} as EntityField);
+    const { value: performance } = await this.performanceLastValue(
+      {
+        entityTag: this.plantTag,
+      } as EntityModel,
+      {} as EntityField,
+    );
     return {
       PR: performance
         ? `${this.maskFunctionService.mask(
@@ -1742,7 +1767,10 @@ export abstract class StringPlantService extends BasePlantService {
   }
   async fetchPOAData(): Promise<number> {
     try {
-      const { value } = await this.isolationTodayLastValue({} as EntityModel,{} as EntityField);
+      const { value } = await this.isolationTodayLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       return value;
     } catch (error) {
       return NaN;
@@ -1806,7 +1834,10 @@ export abstract class StringPlantService extends BasePlantService {
   async fetchIsolationToday(): Promise<string> {
     try {
       const unit = 'kWh/㎡';
-      const { value } = await this.isolationTodayLastValue({} as EntityModel,{} as EntityField);
+      const { value } = await this.isolationTodayLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       const maskedValue = this.maskFunctionService.mask(
         value,
         MaskFunctionsEnum.NumberStringToNFixedNumber,
@@ -1870,7 +1901,10 @@ export abstract class StringPlantService extends BasePlantService {
       const long = statics.find((item) => item.fieldTag === 'long');
       const dataDelay = statics.find((item) => item.fieldTag === 'Data_Delay');
 
-      const { value: performance } = await this.performanceLastValue(plant , {} as EntityField);
+      const { value: performance } = await this.performanceLastValue(
+        plant,
+        {} as EntityField,
+      );
       const { value: availability } = await this.availabilityLastValue(plant);
       const { value: energyToday } =
         await this.energyExportTodayLastValue(plant);
@@ -1952,7 +1986,10 @@ export abstract class StringPlantService extends BasePlantService {
     const substationResult = await Promise.all(
       substationEntities.map(async (substation: EntityModel) => {
         const { value: performance, Date: DateTime } =
-          await this.substationPerformanceLastValue(substation , {} as EntityField);
+          await this.substationPerformanceLastValue(
+            substation,
+            {} as EntityField,
+          );
         const { value: subEnergyLossLess } =
           await this.substaionRawProductionEnergyLastValue(substation);
         const DIState = await this.stateService.fetchActiveState(
@@ -1975,8 +2012,14 @@ export abstract class StringPlantService extends BasePlantService {
     );
     const plant = entities.find((item) => item.entityType.tag === 'Plant');
     if (!plant) throw new InternalServerErrorException('something goes wrong');
-    const { value: performance, Date } = await this.performanceLastValue(plant,{} as EntityField);
-    const { value: power } = await this.powerLastValue(plant,{} as EntityField);
+    const { value: performance, Date } = await this.performanceLastValue(
+      plant,
+      {} as EntityField,
+    );
+    const { value: power } = await this.powerLastValue(
+      plant,
+      {} as EntityField,
+    );
     const { value: energyToday } = await this.energyExportTodayLastValue(plant);
     const meterStatus = await this.statusService.fetchMetersStatus(
       this.plantTag,
@@ -2146,7 +2189,7 @@ export abstract class StringPlantService extends BasePlantService {
     entityField: EntityField,
   ) {
     try {
-      const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
       if (!isInTheDayResult)
         return {
           lastValue: 0,
@@ -2155,7 +2198,8 @@ export abstract class StringPlantService extends BasePlantService {
       const { installedPower: plantEnergy } =
         await this.plantService.resolvePlantEnergy(this.plantId);
       const { value: plantAcEnergy } = await this.powerLastValue(
-        {} as EntityModel,{} as EntityField
+        {} as EntityModel,
+        {} as EntityField,
       );
       let performance = 0;
       if (plantAcEnergy > 0) {
@@ -2259,7 +2303,7 @@ export abstract class StringPlantService extends BasePlantService {
     entityField: EntityField,
   ) {
     try {
-      const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
       if (!isInTheDayResult)
         return {
           lastValue: 0,
@@ -2269,9 +2313,13 @@ export abstract class StringPlantService extends BasePlantService {
         await this.plantService.resolvePlantPerformanceLimit(this.plantId);
       const { installedPower: plantEnergy } =
         await this.plantService.resolvePlantEnergy(this.plantId);
-      const { value: power } = await this.powerLastValue({} as EntityModel,{} as EntityField);
+      const { value: power } = await this.powerLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       const { value: irradiance } = await this.irradiationLastValue(
-        {} as EntityModel,{} as EntityField
+        {} as EntityModel,
+        {} as EntityField,
       );
       let performance = 0;
       if (power > 0 && irradiance > minIrradianceToCalculatePerformance) {
@@ -2412,7 +2460,7 @@ return null;
     entityField: EntityField,
   ) {
     try {
-      const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
       if (!isInTheDayResult)
         return {
           lastValue: 0,
@@ -2422,9 +2470,13 @@ return null;
         await this.plantService.resolvePlantPerformanceLimit(this.plantId);
       const { installedPower: plantEnergy } =
         await this.plantService.resolvePlantEnergy(this.plantId);
-      const { value: power } = await this.powerLastValue({} as EntityModel,{} as EntityField);
+      const { value: power } = await this.powerLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       const { value: irradiance } = await this.irradiationLastValue(
-        {} as EntityModel,{} as EntityField
+        {} as EntityModel,
+        {} as EntityField,
       );
       const { value: mod } = await this.modLastValue(
         {} as EntityModel,
@@ -2455,7 +2507,7 @@ return null;
     dateDetails: IDateDetails,
   ) {
     try {
-      const mvDevice = [entity.entityTag.split(":")[2]]
+      const mvDevice = [entity.entityTag.split(':')[2]];
       const { minIrradianceToCalculatePerformance, alphaFactor } =
         await this.plantService.resolvePlantPerformanceLimit(this.plantId);
       const should = await this.dayLightService.generateShouldClause(
@@ -2578,188 +2630,240 @@ return null;
   }
 
   async acRatioCorrectPerformanceAllValues(
-      entity: EntityModel,
-        entityField: EntityField,
-        dateDetails: IDateDetails,
-  )  {
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
     try {
       const { mode } = dateDetails;
       if (mode === 'C' || mode === 'default' || mode === 'D') return [];
-      const {annualPerformanceDecreasePercent , commissioningYear} = await this.plantService.resolvePlantPerformanceRatioCredential(this.plantId);
-      const lost = annualPerformanceDecreasePercent * commissioningYear
-      const performance = await this.acCorrectPerformanceAllValues(entity, entityField , dateDetails);
-      const mapped:IMappedAllValueResult = performance.map(item => {
+      const { annualPerformanceDecreasePercent, commissioningYear } =
+        await this.plantService.resolvePlantPerformanceRatioCredential(
+          this.plantId,
+        );
+      const lost = annualPerformanceDecreasePercent * commissioningYear;
+      const performance = await this.acCorrectPerformanceAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const mapped: IMappedAllValueResult = performance.map((item) => {
         return {
-          value : item.AvgValue as number - lost,
-          DateTime : item.FullDate
-        }
-    })
-    return this.curveService.buildCurveWithOneValue(mapped)
+          value: (item.AvgValue as number) - lost,
+          DateTime: item.FullDate,
+        };
+      });
+      return this.curveService.buildCurveWithOneValue(mapped);
     } catch (error) {
       console.error('Error fetching records:', error);
       return [];
     }
   }
   async acRatioRawPerformanceAllValues(
-      entity: EntityModel,
-        entityField: EntityField,
-        dateDetails: IDateDetails,
-  )  {
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
     try {
       const { mode } = dateDetails;
       if (mode === 'C' || mode === 'default' || mode === 'D') return [];
-      const {annualPerformanceDecreasePercent , commissioningYear} = await this.plantService.resolvePlantPerformanceRatioCredential(this.plantId);
-      const lost = annualPerformanceDecreasePercent * commissioningYear
-      const performance = await this.acRawPerformanceAllValues(entity, entityField , dateDetails);
-      const mapped:IMappedAllValueResult = performance.map(item => {
+      const { annualPerformanceDecreasePercent, commissioningYear } =
+        await this.plantService.resolvePlantPerformanceRatioCredential(
+          this.plantId,
+        );
+      const lost = annualPerformanceDecreasePercent * commissioningYear;
+      const performance = await this.acRawPerformanceAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const mapped: IMappedAllValueResult = performance.map((item) => {
         return {
-          value : item.AvgValue as number - lost,
-          DateTime : item.FullDate
-        }
-    })
-    return this.curveService.buildCurveWithOneValue(mapped)
+          value: (item.AvgValue as number) - lost,
+          DateTime: item.FullDate,
+        };
+      });
+      return this.curveService.buildCurveWithOneValue(mapped);
     } catch (error) {
       console.error('Error fetching records:', error);
       return [];
     }
   }
   async acRatioBasicPerformanceAllValues(
-      entity: EntityModel,
-        entityField: EntityField,
-        dateDetails: IDateDetails,
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
   ) {
     try {
       const { mode } = dateDetails;
       if (mode === 'C' || mode === 'default' || mode === 'D') return [];
-      const {annualPerformanceDecreasePercent , commissioningYear} = await this.plantService.resolvePlantPerformanceRatioCredential(this.plantId);
-      const lost = annualPerformanceDecreasePercent * commissioningYear
-      const performance = await this.acBasicPerformanceAllValues(entity, entityField , dateDetails);
-      const mapped:IMappedAllValueResult = performance.map(item => {
+      const { annualPerformanceDecreasePercent, commissioningYear } =
+        await this.plantService.resolvePlantPerformanceRatioCredential(
+          this.plantId,
+        );
+      const lost = annualPerformanceDecreasePercent * commissioningYear;
+      const performance = await this.acBasicPerformanceAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const mapped: IMappedAllValueResult = performance.map((item) => {
         return {
-          value : item.AvgValue as number - lost,
-          DateTime : item.FullDate
-        }
-    })
-    return this.curveService.buildCurveWithOneValue(mapped)
+          value: (item.AvgValue as number) - lost,
+          DateTime: item.FullDate,
+        };
+      });
+      return this.curveService.buildCurveWithOneValue(mapped);
     } catch (error) {
       console.error('Error fetching records:', error);
       return [];
     }
   }
 
-  async performanceIndexLastValue(entity: EntityModel,entityField: EntityField,):Promise<IResponseLastValue> {
-  try {
-    const { value: insolation } = await this.isolationTodayLastValue(entity , entityField);
-    const { value: irradiance } = await this.irradiationLastValue(entity , entityField);
-    const { value: power } = await this.powerLastValue({} as EntityModel,{} as EntityField);
-    const { installedPower: plantEnergy } = await this.plantService.resolvePlantEnergy(this.plantId);
-    const { minIrradianceToCalculatePerformance } = await this.plantService.resolvePlantPerformanceLimit(this.plantId)
+  async performanceIndexLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
+    try {
+      const { value: insolation } = await this.isolationTodayLastValue(
+        entity,
+        entityField,
+      );
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
+      const { value: power } = await this.powerLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const { minIrradianceToCalculatePerformance } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
 
-    if (isNaN(insolation) || isNaN(irradiance) || isNaN(power))
+      if (isNaN(insolation) || isNaN(irradiance) || isNaN(power))
+        return {
+          value: 0,
+          Date: getFormattedDateTime(),
+        };
+      if (irradiance < minIrradianceToCalculatePerformance)
+        return {
+          value: 0,
+          Date: getFormattedDateTime(),
+        };
+
+      const performance =
+        (power * irradiance * 100) / (plantEnergy * insolation);
       return {
-        value: 0,
+        value: performance,
         Date: getFormattedDateTime(),
       };
-    if (irradiance < minIrradianceToCalculatePerformance)
-      return {
-        value: 0,
-        Date: getFormattedDateTime(),
-      };
-
-    const performance = (power * irradiance * 100) / (plantEnergy * insolation);
-    return {
-      value: performance,
-      Date: getFormattedDateTime(),
-    };
-  } catch (err) {
-    console.log(`error in ${this.plantTag}: performanceIndexLastValue service `,);
-   return this.lastValueServicesDefaultExport()
-  }
+    } catch (err) {
+      console.log(
+        `error in ${this.plantTag}: performanceIndexLastValue service `,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
   }
   async performanceIndexAllValues(
-          entity: EntityModel,
-          entityField: EntityField,
-          dateDetails: IDateDetails,
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
   ) {
     try {
-      const { installedPower: plantEnergy } = await this.plantService.resolvePlantEnergy(this.plantId);
-      const powers = await this.powerAllValues(entity,entityField,dateDetails);
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const powers = await this.powerAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
       const irradiations = await this.irradiationDailyAllValues(
         entity,
-          entityField,
-          dateDetails,
+        entityField,
+        dateDetails,
       );
       const insolations = await this.isolationTodayAllValues(
         entity,
-          entityField,
-          dateDetails,
+        entityField,
+        dateDetails,
       );
-      const mapped:IMappedAllValueResult = [];
+      const mapped: IMappedAllValueResult = [];
       irradiations.forEach((item) => {
-        const insolation = insolations.find((obj) => obj.FullDate === item.FullDate);
+        const insolation = insolations.find(
+          (obj) => obj.FullDate === item.FullDate,
+        );
         const power = powers.find((obj) => obj.FullDate === item.FullDate);
         if (insolation && insolation.AvgValue > 0) {
-          const performance = ((power.AvgValue as number) * (item.AvgValue as number)) / (plantEnergy * (insolation.AvgValue as number));
+          const performance =
+            ((power.AvgValue as number) * (item.AvgValue as number)) /
+            (plantEnergy * (insolation.AvgValue as number));
           mapped.push({
-            DateTime : item.FullDate,
-            value :performance
-          }
-          );
+            DateTime: item.FullDate,
+            value: performance,
+          });
         }
       });
-      return this.curveService.buildCurveWithOneValue(mapped , MaskFunctionsEnum.MultiplyByThousand)
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.MultiplyByThousand,
+      );
     } catch (error) {
-      console.error(
-          `error in ${this.plantTag}: substationAcBasicPerformanceLastValue service `,
-          error,
-        );
-        return this.allValueServicesDefaultExport();
-    }
-  }
-
-
-  async substationAcBasicPerformanceLastValue(
-   entity: EntityModel,
-    entityField: EntityField,
-) {
-  try {
-     const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
-      if (!isInTheDayResult)
-        return {
-          lastValue: 0,
-          Date: getFormattedDateTime(),
-        };
-    const { substationDcEnergy: substationEnergy } = await this.plantService.resolveSubstationEnergy(this.plantId);
-    const power = await this.fetchMvPower(entity)
-    if (!power)
-      return this.lastValueServicesDefaultExport()
-
-    let performance = 0;
-    if (power > 0) {
-      performance = (power * 100000) / substationEnergy;
-    }
-    const masked = this.maskFunctionService.mask(performance , MaskFunctionsEnum.NumberStringToNFixedNumber)
-    return {
-      value: masked,
-      DateTime: getFormattedDateTime(),
-    };
-  } catch (error) {
       console.error(
         `error in ${this.plantTag}: substationAcBasicPerformanceLastValue service `,
         error,
       );
       return this.allValueServicesDefaultExport();
+    }
   }
+
+  async substationAcBasicPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
+      if (!isInTheDayResult)
+        return {
+          lastValue: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const power = await this.fetchMvPower(entity);
+      if (!power) return this.lastValueServicesDefaultExport();
+
+      let performance = 0;
+      if (power > 0) {
+        performance = (power * 100000) / substationEnergy;
+      }
+      const masked = this.maskFunctionService.mask(
+        performance,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+      return {
+        value: masked,
+        DateTime: getFormattedDateTime(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: substationAcBasicPerformanceLastValue service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
   }
   async substationAcBasicPerformanceAllValues(
-      entity: EntityModel,
-      entityField: EntityField,
-      dateDetails: IDateDetails,
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
   ) {
     try {
       const [, substation, device] = entity.entityTag.split(':');
       const { range, date_histogram } = setTimeRange(dateDetails);
-      const { substationDcEnergy: plantEnergy } = await this.plantService.resolveSubstationEnergy(this.plantId);
+      const { substationDcEnergy: plantEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
       const body = {
         size: 0,
         _source: [this.irradiationParameter, 'P_total', 'DateTime'],
@@ -2792,22 +2896,25 @@ return null;
           },
         },
       };
-      const response = await this.elasticService.search(this.plantIndex , body)
-      const mapped:IMappedAllValueResult = [];
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
       response.aggregations.intervals.buckets.forEach((item) => {
         const performance = (item.max_abs_ptotal.value * 100000) / plantEnergy;
         mapped.push({
-          value : performance,
-          DateTime : item.key_as_string
-        })
+          value: performance,
+          DateTime: item.key_as_string,
+        });
       });
-      return this.curveService.buildCurveWithOneValue(mapped , MaskFunctionsEnum.NumberStringToNFixedNumber);
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
     } catch (error) {
-            console.error(
-          `error in ${this.plantTag}: substationAcBasicPerformanceAllValues service `,
-          error,
-        );
-        return this.allValueServicesDefaultExport();
+      console.error(
+        `error in ${this.plantTag}: substationAcBasicPerformanceAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
     }
   }
   async substationAcRawPerformanceLastValue(
@@ -2815,7 +2922,7 @@ return null;
     entityField: EntityField,
   ) {
     try {
-      const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
       if (!isInTheDayResult)
         return {
           lastValue: 0,
@@ -2827,18 +2934,19 @@ return null;
         await this.plantService.resolveSubstationEnergy(this.plantId);
       const power = await this.fetchMvPower(entity);
       const { value: irradiance } = await this.irradiationLastValue(
-        {} as EntityModel,{} as EntityField
+        {} as EntityModel,
+        {} as EntityField,
       );
       let performance = 0;
       if (power < 0 && irradiance > minIrradianceToCalculatePerformance) {
-        performance =(-power * 100000000) / (substationEnergy * irradiance); 
+        performance = (-power * 100000000) / (substationEnergy * irradiance);
       }
       return {
         lastValue: performance,
         Date: getFormattedDateTime(),
       };
     } catch (err) {
-       console.error(
+      console.error(
         `error in ${this.plantTag}: substationAcCorrectPerformanceLastValue service `,
         err,
       );
@@ -2938,24 +3046,23 @@ return null;
       };
       const response = await this.elasticService.search(this.plantIndex, body);
       const mapped: IMappedAllValueResult = [];
-        response.aggregations.intervals.buckets.forEach((item) => {
-      if (item.max_irradiance?.value > minIrradianceToCalculatePerformance) {
-        const performance =
-          (item.max_abs_ptotal.value * 100000000) / (substationEnergy * item?.max_irradiance?.value);
-        mapped.push(
-          {
-            DateTime : item.key_as_string,
-            value : performance
-          }
-        );
-      }
-    });
+      response.aggregations.intervals.buckets.forEach((item) => {
+        if (item.max_irradiance?.value > minIrradianceToCalculatePerformance) {
+          const performance =
+            (item.max_abs_ptotal.value * 100000000) /
+            (substationEnergy * item?.max_irradiance?.value);
+          mapped.push({
+            DateTime: item.key_as_string,
+            value: performance,
+          });
+        }
+      });
       return this.curveService.buildCurveWithOneValue(
         mapped,
         MaskFunctionsEnum.NumberStringToNFixedNumber,
       );
     } catch (error) {
-       console.error(
+      console.error(
         `error in ${this.plantTag}: substationAcRawPerformanceAllValues service `,
         error,
       );
@@ -2967,7 +3074,7 @@ return null;
     entityField: EntityField,
   ) {
     try {
-      const isInTheDayResult = await this.plantService.isInTheDay(this.plantId);
+      const isInTheDayResult = await this.isInTheDay(this.plantId);
       if (!isInTheDayResult)
         return {
           lastValue: 0,
@@ -2979,7 +3086,8 @@ return null;
         await this.plantService.resolveSubstationEnergy(this.plantId);
       const power = await this.fetchMvPower(entity);
       const { value: irradiance } = await this.irradiationLastValue(
-        {} as EntityModel,{} as EntityField
+        {} as EntityModel,
+        {} as EntityField,
       );
       const { value: mod } = await this.modLastValue(
         {} as EntityModel,
@@ -2996,7 +3104,7 @@ return null;
         Date: getFormattedDateTime(),
       };
     } catch (err) {
-       console.error(
+      console.error(
         `error in ${this.plantTag}: substationAcCorrectPerformanceLastValue service `,
         err,
       );
@@ -3126,7 +3234,7 @@ return null;
         MaskFunctionsEnum.NumberStringToNFixedNumber,
       );
     } catch (error) {
-        console.error(
+      console.error(
         `error in ${this.plantTag}: substationAcCorrectPerformanceAllValues service `,
         error,
       );
@@ -3197,18 +3305,75 @@ return null;
       return { start: null, end: null, diffHours: null };
     }
   }
-  async fetchMvPower(entity:EntityModel){
+  async isInTheDay(plantId: number) {
+    const plant = await this.plantService.fetchWithFleetByPlantId(plantId);
+    const plantIndex = generatePlantIndex(plant.entityTag);
+    const hvEntities = await this.plantService.fetchPlantHvEntity(plantId);
+    const hvDevice = hvEntities.map((item) => item.entityTag.split(':')[2]);
+    const elasticQuery = {
+      query: {
+        bool: {
+          must: [
+            {
+              range: {
+                DateTime: {
+                  gte: 'now-5m',
+                  lte: 'now',
+                },
+              },
+            },
+            {
+              terms: {
+                'DeviceName.keyword': hvDevice,
+              },
+            },
+          ],
+        },
+      },
+      aggs: {
+        devices: {
+          terms: {
+            field: 'DeviceName.keyword',
+            size: 10,
+          },
+          aggs: {
+            power: {
+              top_hits: {
+                _source: ['P_total', 'DateTime'],
+                sort: [{ DateTime: { order: 'desc' } }],
+                size: 1,
+              },
+            },
+          },
+        },
+      },
+    };
+    const response = await this.elasticService.search(plantIndex, elasticQuery);
+    let power = 0;
+    response.aggregations.devices.buckets.forEach((item) => {
+      power = power + item.power.hits.hits[0]._source['P_total'];
+    });
+    if (power < 0) return true;
+    return false;
+  }
+  async fetchMvPower(entity: EntityModel) {
     try {
-      const [,substation , device] = entity.entityTag.split(":")
-   const elasticQuery = buildLatestDeviceFieldElasticQuery(device , 'P_total');
-    const result = await this.elasticService.search(this.plantIndex , elasticQuery)
-    console.log({result});
-    
-    const power = result.hits.hits[0]._source['P_total']
-    return power 
+      const [, substation, device] = entity.entityTag.split(':');
+      const elasticQuery = buildLatestDeviceFieldElasticQuery(
+        device,
+        'P_total',
+      );
+      const result = await this.elasticService.search(
+        this.plantIndex,
+        elasticQuery,
+      );
+      console.log({ result });
+
+      const power = result.hits.hits[0]._source['P_total'];
+      return power;
     } catch (error) {
       console.log(error);
-      return null
+      return null;
     }
   }
   // async fetchFullTreeData() {

@@ -49,15 +49,36 @@ export class TestController {
   @HttpCode(HttpStatus.OK)
   @Post()
   async test() {
-    // const koshk2 = await this.koshk2Service.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
+    const correct = await this.jarghoyeh1Service.substationAcCorrectPerformanceAllValues(
+      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
+      {} as EntityField,
+       {
+        mode: PeriodEnum.D,
+        startDate: '2025-07-27T14:15:00.000+03:30',
+        endDate: '2025-10-27T22:00:00.000+03:30',
+      },
+    );
+        const raw = await this.jarghoyeh1Service.substationAcRawPerformanceAllValues(
+      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
+      {} as EntityField,
+             {
+        mode: PeriodEnum.D,
+        startDate: '2025-07-27T14:15:00.000+03:30',
+        endDate: '2025-10-27T22:00:00.000+03:30',
+      },
+    );
+        const basic = await this.jarghoyeh1Service.substationAcBasicPerformanceAllValues(
+      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
+      {} as EntityField,
+             {
+        mode: PeriodEnum.D,
+        startDate: '2025-07-27T14:15:00.000+03:30',
+        endDate: '2025-10-27T22:00:00.000+03:30',
+      },
+    );
+    return {
+      raw , correct , basic
+    }
     // const koshk1 = await this.koshk1Service.modAllValues(
     //   {} as EntityModel,
     //   {} as EntityField,
@@ -119,46 +140,44 @@ export class TestController {
     //     endDate: '2025-12-27T22:00:00.000+03:30',
     //   },
     // );
-    const jarghoyeh = await this.jarghoyehService.substationAcRawPerformanceLastValue(
-       {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    const jarghoyeh3 =
-      await this.jarghoyeh3Service.substationAcRawPerformanceLastValue(
-         {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-        {} as EntityField,
-      );
-    const qom = await this.qomService.substationAcRawPerformanceLastValue(
-      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    const mehriz = await this.mehrizService.substationAcRawPerformanceLastValue(
-      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    const koshk1 = await this.koshk1Service.substationAcRawPerformanceLastValue(
-       {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    const koshk2 = await this.koshk2Service.substationAcRawPerformanceLastValue(
-      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    const baft = await this.baftServiceB.substationAcRawPerformanceLastValue(
-      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-      {} as EntityField,
-    );
-    return {
-      jarghoyeh,
-      jarghoyeh3,
-      qom,
-      mehriz,
-      koshk1,
-      koshk2,
-      baft,
-    };
-
-
+    // const jarghoyeh = await this.jarghoyehService.substationAcRawPerformanceLastValue(
+    //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // const jarghoyeh3 =
+    //   await this.jarghoyeh3Service.substationAcRawPerformanceLastValue(
+    //      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //     {} as EntityField,
+    //   );
+    // const qom = await this.qomService.substationAcRawPerformanceLastValue(
+    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // const mehriz = await this.mehrizService.substationAcRawPerformanceLastValue(
+    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // const koshk1 = await this.koshk1Service.substationAcRawPerformanceLastValue(
+    //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // const koshk2 = await this.koshk2Service.substationAcRawPerformanceLastValue(
+    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // const baft = await this.baftServiceB.substationAcRawPerformanceLastValue(
+    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+    //   {} as EntityField,
+    // );
+    // return {
+    //   jarghoyeh,
+    //   jarghoyeh3,
+    //   qom,
+    //   mehriz,
+    //   koshk1,
+    //   koshk2,
+    //   baft,
+    // };
 
     // const jarghoyeh = await this.jarghoyehService.substationAcCorrectPerformanceAllValues(
     //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
@@ -224,16 +243,22 @@ export class TestController {
     //     endDate: '2025-10-27T22:00:00.000+03:30',
     //   },
     // );
-    return {
-      koshk1
-      // jarghoyeh,
-      // jarghoyeh3,
-      // qom,
-      // mehriz,
-      // koshk1,
-      // koshk2,
-      // baft,
-    };
+    // return {
+    //   koshk1
+    // jarghoyeh,
+    // jarghoyeh3,
+    // qom,
+    // mehriz,
+    // koshk1,
+    // koshk2,
+    // baft,
+    // };
+
+    const jarghoyeh =
+      await this.jarghoyehService.substationAcRawPerformanceLastValue(
+        { entityTag: 'jarghoyeh:PCC:MV POWER METER SUB 1' } as EntityModel,
+        {} as EntityField,
+      );
   }
   // const isolation = await this.jarghoyeh1Service.isolationTodayLastValue()
   // const irradiance = this.jarghoyeh1Service.isolationTodayLastValue({} as EntityModel)
@@ -378,7 +403,7 @@ export class TestController {
   // const powerLastValue = await this.mehrizService.powerLastValue(
   //   {} as EntityModel
   // );
-  // const irradiationLastValue = await this.mehrizService.irradiationLastValue(
+  // const correct = await this.mehrizService.irradiationLastValue(
   //   {} as EntityModel
   // );
   // const energyExportTodayLastValue = await this.mehrizService.energyExportTodayLastValue(

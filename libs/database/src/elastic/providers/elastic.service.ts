@@ -63,14 +63,20 @@ export class ElasticService {
     return Array.isArray(indices) && indices.length > 0 ? true : false;
   }
 
-
-  async fetchDeviceParameterLatestValue(index:string , device:string , parameter:string){
+  async fetchDeviceParameterLatestValue(
+    index: string,
+    device: string,
+    parameter: string,
+  ) {
     try {
-            const elasticQuery = buildLatestDeviceFieldElasticQuery('PV Temp' , 'PV_temp')
-      const result = await this.search(index , elasticQuery)
-      return result.hits.hits[0]._source[`${parameter}`]
+      const elasticQuery = buildLatestDeviceFieldElasticQuery(
+        'PV Temp',
+        'PV_temp',
+      );
+      const result = await this.search(index, elasticQuery);
+      return result.hits.hits[0]._source[`${parameter}`];
     } catch (error) {
-      return null
+      return null;
     }
   }
 }

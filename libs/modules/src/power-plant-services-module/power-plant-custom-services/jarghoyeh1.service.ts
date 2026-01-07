@@ -615,9 +615,18 @@ export class Jarghoyeh1Service extends SantralPlantService {
     );
     const plant = entities.find((item) => item.entityType.tag === 'Plant');
     if (!plant) throw new InternalServerErrorException('something goes wrong');
-    const { value: performance, Date } = await this.performanceLastValue(plant);
-    const { value: power } = await this.powerLastValue(plant);
-    const { value: energyToday } = await this.energyExportTodayLastValue(plant);
+    const { value: performance, Date } = await this.performanceLastValue(
+      plant,
+      {} as EntityField,
+    );
+    const { value: power } = await this.powerLastValue(
+      plant,
+      {} as EntityField,
+    );
+    const { value: energyToday } = await this.energyExportTodayLastValue(
+      plant,
+      {} as EntityField,
+    );
     const meterStatus = await this.statusService.fetchMetersStatus(
       Jarghoyeh1Service.PLANT_TAG,
     );

@@ -19,6 +19,7 @@ import {
   buildLosslessSubstationEnergyQuery,
   buildLatestDeviceObjElasticQuery,
   buildSantralPlantPerformanceAllValueQuery,
+  buildDistictElasticDevice,
 } from 'libs/database';
 import {
   IDateDetails,
@@ -31,7 +32,9 @@ import {
   getHourlyDifference,
   getNestedValue,
   getWeatherFieldElasticPath,
+  logStringify,
   msToTime,
+  saveJson,
   setTimeRange,
 } from 'libs/utils';
 import {
@@ -55,6 +58,7 @@ import { IMeteo } from '../../interfaces/meteo.interface';
 import { MaskFunctionService } from '../mask-functions/mask-function.service';
 import { BasePlantService } from './base-plant.service';
 import { PlantDayLightService } from '../day-light/day-light.service';
+import e from 'express';
 
 @Injectable()
 export abstract class SantralPlantService extends BasePlantService {
@@ -96,7 +100,10 @@ export abstract class SantralPlantService extends BasePlantService {
     );
   }
 
-  async powerLastValue(entity: EntityModel): Promise<IResponseLastValue> {
+  async powerLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildLatestDeviceFieldElasticQuery(
         'ION METER',
@@ -162,6 +169,7 @@ export abstract class SantralPlantService extends BasePlantService {
   }
   async energyImportTodayLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const device = 'ION METER';
@@ -244,6 +252,7 @@ export abstract class SantralPlantService extends BasePlantService {
   }
   async energyImportTotalLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildLatestDeviceFieldElasticQuery(
@@ -312,6 +321,7 @@ export abstract class SantralPlantService extends BasePlantService {
 
   async energyExportTotalLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildLatestDeviceFieldElasticQuery(
@@ -380,6 +390,7 @@ export abstract class SantralPlantService extends BasePlantService {
 
   async energyExportTodayLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     const deviceName = 'ION METER';
     try {
@@ -455,7 +466,10 @@ export abstract class SantralPlantService extends BasePlantService {
     }
   }
 
-  async irradiationLastValue(entity: EntityModel): Promise<IResponseLastValue> {
+  async irradiationLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
     try {
       const irradiationDevices =
         await this.plantService.fetchPlantIrradiationDevices(this.plantId);
@@ -537,7 +551,7 @@ export abstract class SantralPlantService extends BasePlantService {
     }
   }
 
-  async performanceLastValue(entity: EntityModel) {
+  async performanceLastValue(entity: EntityModel, entityField: EntityField) {
     try {
       const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
         this.plantId,
@@ -545,9 +559,11 @@ export abstract class SantralPlantService extends BasePlantService {
       );
       if (!nominalPower) return this.lastValueServicesDefaultExport();
       const { value: irradiance, Date: irradianceDateTime } =
-        await this.irradiationLastValue(entity);
-      const { value: pTotal, Date: powerDateTime } =
-        await this.powerLastValue(entity);
+        await this.irradiationLastValue(entity, entityField);
+      const { value: pTotal, Date: powerDateTime } = await this.powerLastValue(
+        entity,
+        entityField,
+      );
       if (!pTotal || !irradiance) return this.lastValueServicesDefaultExport();
       const DateTime = irradianceDateTime || powerDateTime || NaN;
       let performance = 0;
@@ -638,6 +654,848 @@ export abstract class SantralPlantService extends BasePlantService {
     }
   }
 
+  async acCorrectPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          lastValue: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { value: mod } = await this.modLastValue(entity, entityField);
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const { value: power } = await this.powerLastValue(entity, entityField);
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
+      let performance = 0;
+      if (power > 0 && irradiance > minIrradianceToCalculatePerformance) {
+        performance =
+          (power * 100000000) /
+          (plantEnergy * irradiance * (1 + alphaFactor * (mod - 25)));
+      }
+      return {
+        lastValue: performance,
+        Date: new Date(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acCorrectPerformanceLastValue service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async acCorrectPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const should = await this.dayLightService.generateShouldClause(
+        this.plantTag,
+        dateDetails,
+      );
+      const mods = await this.modDailyAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const irradiationEntities =
+        await this.plantService.fetchPlantIrradiationDevices(this.plantId);
+      const irradiationDevice = irradiationEntities.map(
+        (item) => item.entityTag.split(':')[2],
+      );
+      const irradiationElasticScriptCondition = irradiationDevice
+        .map((name) => `doc['DeviceName.keyword'].value == '${name}'`)
+        .join(' || ');
+
+      const irradiationElasticScript = `
+if (${irradiationElasticScriptCondition}) {
+  if (
+    doc['${this.irradiationParameter}'].size() > 0 &&
+    doc['${this.irradiationParameter}'].value > 0
+  ) {
+    return doc['${this.irradiationParameter}'].value;
+  }
+}
+return null;
+`.trim();
+      const body = {
+        size: 0,
+        _source: [
+          'Irradiance_(temperature_compensated_signal)',
+          'P_total',
+          'DateTime',
+        ],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': [...irradiationDevice, 'ION METER'],
+                },
+              },
+              {
+                range,
+              },
+            ],
+            should,
+            minimum_should_match: 1,
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_irradiance: {
+                avg: {
+                  script: {
+                    source: irradiationElasticScript,
+                  },
+                },
+              },
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source:
+                      "if (doc['DeviceName.keyword'].value == 'ION METER') { if (doc['kW_tot'].size() > 0 && doc['kW_tot'].value>0) { return doc['kW_tot'].value } } return null;",
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      // saveJsonToFile(body)
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
+      mods.forEach((item) => {
+        const result = response.aggregations.intervals.buckets.find(
+          (obj) => obj.key_as_string === item.FullDate,
+        );
+        if (
+          result &&
+          result?.max_irradiance?.value > minIrradianceToCalculatePerformance
+        ) {
+          const performance =
+            (result?.max_abs_ptotal?.value * 100000000000) /
+            (plantEnergy *
+              result?.max_irradiance?.value *
+              (1 + alphaFactor * ((item.AvgValue as number) - 25)));
+
+          mapped.push({
+            DateTime: item.FullDate,
+            value: performance,
+          });
+        }
+      });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acCorrectPerformanceAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async acBasicPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          lastValue: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const { value: plantAcPower } = await this.powerLastValue(
+        entity,
+        entityField,
+      );
+      let performance = 0;
+      if (plantAcPower > 0) {
+        performance = (plantAcPower * 100000) / plantEnergy;
+      }
+      return {
+        lastValue: performance,
+        Date: getFormattedDateTime(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acBasicPerformanceLastValue service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async acBasicPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const { installedPower: plantACPower } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const body = {
+        size: 0,
+        _source: ['kW_tot', 'DateTime'],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': ['ION METER'],
+                },
+              },
+              {
+                range,
+              },
+            ],
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source:
+                      "if (doc['DeviceName.keyword'].value == 'ION METER') { if (doc['kW_tot'].size() > 0 && doc['kW_tot'].value>0) { return doc['kW_tot'].value; } } return null;",
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult =
+        response.aggregations.intervals.buckets.map((item) => {
+          const performance =
+            (item.max_abs_ptotal.value * 100000000) / plantACPower;
+          return {
+            DateTime: item.key_as_string,
+            value: performance,
+          };
+        });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acBasicPerformanceAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async acRawPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          lastValue: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const { value: power } = await this.powerLastValue(entity, entityField);
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
+      let performance = 0;
+      if (power > 0 && irradiance > minIrradianceToCalculatePerformance) {
+        performance = (power * 100000) / ((plantEnergy * irradiance) / 1000);
+      }
+      return {
+        lastValue: performance,
+        Date: getFormattedDateTime(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acRawPerformanceLastValue service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async acRawPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const should = await this.dayLightService.generateShouldClause(
+        this.plantTag,
+        dateDetails,
+      );
+      const mods = await this.modDailyAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const { installedPower: plantEnergy } =
+        await this.plantService.resolvePlantEnergy(this.plantId);
+      const irradiationEntities =
+        await this.plantService.fetchPlantIrradiationDevices(this.plantId);
+      const irradiationDevice = irradiationEntities.map(
+        (item) => item.entityTag.split(':')[2],
+      );
+      const irradiationElasticScriptCondition = irradiationDevice
+        .map((name) => `doc['DeviceName.keyword'].value == '${name}'`)
+        .join(' || ');
+
+      const irradiationElasticScript = `
+if (${irradiationElasticScriptCondition}) {
+  if (
+    doc['${this.irradiationParameter}'].size() > 0 &&
+    doc['${this.irradiationParameter}'].value > 0
+  ) {
+    return doc['${this.irradiationParameter}'].value;
+  }
+}
+return null;
+`.trim();
+      const body = {
+        size: 0,
+        _source: [this.irradiationParameter, 'P_total', 'DateTime'],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': [...irradiationDevice, 'ION METER'],
+                },
+              },
+              {
+                range,
+              },
+            ],
+            should,
+            minimum_should_match: 1,
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_irradiance: {
+                avg: {
+                  script: {
+                    source: irradiationElasticScript,
+                  },
+                },
+              },
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source:
+                      "if (doc['DeviceName.keyword'].value == 'ION METER') { if (doc['kW_tot'].size() > 0 && doc['kW_tot'].value>0) { return doc['kW_tot'].value } } return null;",
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.intervals.buckets.map((item) => {
+        if (item?.max_irradiance?.value > minIrradianceToCalculatePerformance) {
+          const performance =
+            (item?.max_abs_ptotal?.value * 100000000000) /
+            (plantEnergy * item?.max_irradiance?.value);
+          mapped.push({
+            DateTime: item.key_as_string,
+            value: performance,
+          });
+        }
+      });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: acRawPerformanceAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+
+  async substationAcBasicPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
+    try {
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          value: 0,
+          Date: getFormattedDateTime(),
+        };
+
+      const { substationDcEnergy: subAcEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const power = await this.substationAcPowerLastValue(entity);
+      if (!power) return this.lastValueServicesDefaultExport();
+      let performance = 0;
+      if (power > 0) {
+        performance = (power * 100000) / subAcEnergy;
+      }
+      return {
+        value: performance,
+        Date: getFormattedDateTime(),
+      };
+    } catch (err) {
+      console.error(
+        `error in ${this.plantTag}: substationAcBasicPerformanceLastValue service `,
+        err,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationAcBasicPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const [, substation, deviceTag] = entity.entityTag.split(':');
+      const device = `Inverter ${deviceTag.split(' ')[1]}`;
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const body = {
+        size: 0,
+        _source: [
+          'Irradiance_(temperature_compensated_signal)',
+          'Active_power',
+          'DateTime',
+        ],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': [device],
+                },
+              },
+              {
+                range,
+              },
+            ],
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source: `if (doc['DeviceName.keyword'].value == '${device}') { if (doc['Active_power'].size() > 0 && doc['Active_power'].value>0) { return Math.abs(doc['Active_power'].value); } } return null;`,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.intervals.buckets.forEach((item) => {
+        const performance =
+          (item.max_abs_ptotal.value * 100000) / substationEnergy;
+        mapped.push({
+          DateTime: item.key_as_string,
+          value: performance,
+        });
+      });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: substationAcBasicPerformanceAllValues service `,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationAcCorrectPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          value: 0,
+          Date: getFormattedDateTime(),
+        };
+
+      const { substationDcEnergy: subAcEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const power = await this.substationAcPowerLastValue(entity);
+      if (!power)
+        return {
+          value: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const { value: mod } = await this.modLastValue(entity, entityField);
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
+      let performance = 0;
+      if (power > 0 && irradiance > minIrradianceToCalculatePerformance) {
+        performance =
+          (power * 100000000) /
+          (subAcEnergy * irradiance * (1 + alphaFactor * (mod - 25)));
+      }
+      return {
+        lastValue: performance,
+        Date: getFormattedDateTime(),
+      };
+    } catch (err) {
+      console.error(
+        `error in ${this.plantTag}: substationAcCorrectPerformanceLastValue service `,
+        err,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationAcCorrectPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const should = await this.dayLightService.generateShouldClause(
+        this.plantTag,
+        dateDetails,
+      );
+      const mods = await this.modDailyAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const [, substation, deviceTag] = entity.entityTag.split(':');
+      const device = `Inverter ${deviceTag.split(' ')[1]}`;
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const irradiationEntities =
+        await this.plantService.fetchPlantIrradiationDevices(this.plantId);
+      const irradiationDevice = irradiationEntities.map(
+        (item) => item.entityTag.split(':')[2],
+      );
+      const irradiationElasticScriptCondition = irradiationDevice
+        .map((name) => `doc['DeviceName.keyword'].value == '${name}'`)
+        .join(' || ');
+
+      const irradiationElasticScript = `
+if (${irradiationElasticScriptCondition}) {
+  if (
+    doc['${this.irradiationParameter}'].size() > 0 &&
+    doc['${this.irradiationParameter}'].value > 0
+  ) {
+    return doc['${this.irradiationParameter}'].value;
+  }
+}
+return null;
+`.trim();
+      const body = {
+        size: 0,
+        _source: [
+          'Irradiance_(temperature_compensated_signal)',
+          'Active_power',
+          'DateTime',
+        ],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': [...irradiationDevice, device],
+                },
+              },
+              {
+                range,
+              },
+            ],
+            should,
+            minimum_should_match: 1,
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_irradiance: {
+                avg: {
+                  script: {
+                    source: irradiationElasticScript,
+                  },
+                },
+              },
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source: `if (doc['DeviceName.keyword'].value == '${device}') { if (doc['Active_power'].size() > 0 && doc['Active_power'].value>0) { return Math.abs(doc['Active_power'].value); } } return null;`,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
+      mods.forEach((item) => {
+        const result = response.aggregations.intervals.buckets.find(
+          (obj) => obj.key_as_string === item.FullDate,
+        );
+        if (
+          result &&
+          result?.max_irradiance?.value > minIrradianceToCalculatePerformance
+        ) {
+          const performance =
+            (result.max_abs_ptotal.value * 100000000) /
+            (substationEnergy *
+              result.max_irradiance.value *
+              (1 + alphaFactor * ((item.AvgValue as number) - 25)));
+
+          mapped.push({
+            value: performance,
+            DateTime: item.FullDate,
+          });
+        }
+      });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: substationAcCorrectPerformanceAllValues service `,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationAcRawPerformanceLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const isInTheDayResult = await this.isInTheDay();
+      if (!isInTheDayResult)
+        return {
+          lastValue: 0,
+          Date: getFormattedDateTime(),
+        };
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const power = await this.substationAcPowerLastValue(entity);
+      const { value: irradiance } = await this.irradiationLastValue(
+        entity,
+        entityField,
+      );
+      let performance = 0;
+      if (
+        power &&
+        power > 0 &&
+        irradiance > minIrradianceToCalculatePerformance
+      ) {
+        performance =
+          (power * 100000) / ((substationEnergy * irradiance) / 1000);
+      }
+      return {
+        lastValue: performance,
+        Date: getFormattedDateTime(),
+      };
+    } catch (err) {
+      console.error(
+        `error in ${this.plantTag}: substationAcRawPerformanceLastValue service `,
+        err,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationAcRawPerformanceAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { minIrradianceToCalculatePerformance, alphaFactor } =
+        await this.plantService.resolvePlantPerformanceLimit(this.plantId);
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const should = await this.dayLightService.generateShouldClause(
+        this.plantTag,
+        dateDetails,
+      );
+      const mods = await this.modDailyAllValues(
+        entity,
+        entityField,
+        dateDetails,
+      );
+      const [, substation, deviceTag] = entity.entityTag.split(':');
+      const device = `Inverter ${deviceTag.split(' ')[1]}`;
+      const { substationDcEnergy: substationEnergy } =
+        await this.plantService.resolveSubstationEnergy(this.plantId);
+      const irradiationEntities =
+        await this.plantService.fetchPlantIrradiationDevices(this.plantId);
+      const irradiationDevice = irradiationEntities.map(
+        (item) => item.entityTag.split(':')[2],
+      );
+      const irradiationElasticScriptCondition = irradiationDevice
+        .map((name) => `doc['DeviceName.keyword'].value == '${name}'`)
+        .join(' || ');
+
+      const irradiationElasticScript = `
+if (${irradiationElasticScriptCondition}) {
+  if (
+    doc['${this.irradiationParameter}'].size() > 0 &&
+    doc['${this.irradiationParameter}'].value > 0
+  ) {
+    return doc['${this.irradiationParameter}'].value;
+  }
+}
+return null;
+`.trim();
+      const body = {
+        size: 0,
+        _source: [
+          'Irradiance_(temperature_compensated_signal)',
+          'Active_power',
+          'DateTime',
+        ],
+        query: {
+          bool: {
+            must: [
+              {
+                terms: {
+                  'DeviceName.keyword': [...irradiationDevice, device],
+                },
+              },
+              {
+                range,
+              },
+            ],
+            should,
+            minimum_should_match: 1,
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              max_irradiance: {
+                avg: {
+                  script: {
+                    source: irradiationElasticScript,
+                  },
+                },
+              },
+              max_abs_ptotal: {
+                avg: {
+                  script: {
+                    source: `if (doc['DeviceName.keyword'].value == '${device}') { if (doc['Active_power'].size() > 0 && doc['Active_power'].value>0) { return Math.abs(doc['Active_power'].value); } } return null;`,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(this.plantIndex, body);
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.intervals.buckets.forEach((item) => {
+        if (item?.max_irradiance?.value > minIrradianceToCalculatePerformance) {
+          const performance =
+            (item.max_abs_ptotal.value * 100000000) /
+            (substationEnergy *
+              item.max_irradiance.value *
+              (1 + alphaFactor * (item.AvgValue - 25)));
+
+          mapped.push({
+            value: performance,
+            DateTime: item.key_as_string,
+          });
+        }
+      });
+      return this.curveService.buildCurveWithOneValue(
+        mapped,
+        MaskFunctionsEnum.NumberStringToNFixedNumber,
+      );
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: substationAcRawPerformanceAllValues service `,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+
+  async substationAcPowerLastValue(entity: EntityModel) {
+    const [, substation, _] = entity.entityTag.split(':');
+    const device = `Inverter ${substation.split(' ')[1]}`;
+    const power = await this.elasticService.fetchDeviceParameterLatestValue(
+      this.plantIndex,
+      device,
+      'Active_power',
+    );
+    if (!power) return null;
+    const masked = this.maskFunctionService.mask(
+      power,
+      MaskFunctionsEnum.ReLU,
+    ) as number;
+    return masked;
+  }
   async powerFactorLastValue(entity: EntityModel): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildLatestDeviceFieldElasticQuery(
@@ -913,6 +1771,7 @@ export abstract class SantralPlantService extends BasePlantService {
       );
       const { value } = await this.energyExportTodayLastValue(
         {} as EntityModel,
+        {} as EntityField,
       );
       const maskedValue = this.maskFunctionService.mask(
         value,
@@ -986,9 +1845,10 @@ export abstract class SantralPlantService extends BasePlantService {
   }
   async fetchEnergyExportTotal() {
     try {
-      const { value } = await this.energyExportTotalLastValue({
-        entityTag: this.plantTag,
-      } as EntityModel);
+      const { value } = await this.energyExportTotalLastValue(
+        { entityTag: this.plantTag } as EntityModel,
+        {} as EntityField,
+      );
       return value;
     } catch (error) {
       console.error('Error fetching EnergyExportTotal', error);
@@ -997,9 +1857,10 @@ export abstract class SantralPlantService extends BasePlantService {
   }
   async fetchEnergyImportTotal() {
     try {
-      const { value } = await this.energyImportTodayLastValue({
-        entityTag: this.plantTag,
-      } as EntityModel);
+      const { value } = await this.energyImportTodayLastValue(
+        { entityTag: this.plantTag } as EntityModel,
+        {} as EntityField,
+      );
       return value;
     } catch (error) {
       console.error('Error fetching EnergyExportTotal', error);
@@ -1026,9 +1887,12 @@ export abstract class SantralPlantService extends BasePlantService {
     const { value: availability } = await this.availabilityLastValue({
       entityTag: this.plantTag,
     } as EntityModel);
-    const { value: performance } = await this.performanceLastValue({
-      entityTag: this.plantTag,
-    } as EntityModel);
+    const { value: performance } = await this.performanceLastValue(
+      {
+        entityTag: this.plantTag,
+      } as EntityModel,
+      {} as EntityField,
+    );
     return {
       PR: performance
         ? `$${this.maskFunctionService.mask(
@@ -1075,7 +1939,10 @@ export abstract class SantralPlantService extends BasePlantService {
   }
   async fetchPOAData(): Promise<number> {
     try {
-      const { value } = await this.isolationTodayLastValue({} as EntityModel,{} as EntityField)
+      const { value } = await this.isolationTodayLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       return value;
     } catch (error) {
       return NaN;
@@ -1085,6 +1952,7 @@ export abstract class SantralPlantService extends BasePlantService {
     try {
       const { value } = await this.energyExportTodayLastValue(
         {} as EntityModel,
+        {} as EntityField,
       );
       return value;
     } catch (error) {
@@ -1153,7 +2021,10 @@ export abstract class SantralPlantService extends BasePlantService {
   async fetchIsolationToday() {
     try {
       const unit = 'kWh/㎡';
-      const { value } = await this.isolationTodayLastValue({} as EntityModel,{} as EntityField)
+      const { value } = await this.isolationTodayLastValue(
+        {} as EntityModel,
+        {} as EntityField,
+      );
       const maskedValue = this.maskFunctionService.mask(
         value,
         MaskFunctionsEnum.FormatReadableNumber,
@@ -1217,12 +2088,19 @@ export abstract class SantralPlantService extends BasePlantService {
       const long = statics.find((item) => item.fieldTag === 'long');
       const dataDelay = statics.find((item) => item.fieldTag === 'Data_Delay');
 
-      const { value: performance } = await this.performanceLastValue(plant);
+      const { value: performance } = await this.performanceLastValue(
+        plant,
+        {} as EntityField,
+      );
       const { value: availability } = await this.availabilityLastValue(plant);
-      const { value: energyToday } =
-        await this.energyExportTodayLastValue(plant);
-      const { value: energyTotal } =
-        await this.energyExportTotalLastValue(plant);
+      const { value: energyToday } = await this.energyExportTodayLastValue(
+        plant,
+        {} as EntityField,
+      );
+      const { value: energyTotal } = await this.energyExportTotalLastValue(
+        plant,
+        {} as EntityField,
+      );
       return {
         plant,
         nominalPower,
@@ -1302,5 +2180,14 @@ export abstract class SantralPlantService extends BasePlantService {
       value: stringHour,
       Date: getFormattedDateTime(),
     };
+  }
+  async isInTheDay() {
+    const power = await this.elasticService.fetchDeviceParameterLatestValue(
+      this.plantIndex,
+      'ION METER',
+      'kW_tot',
+    );
+    if (power < 0) return true;
+    return false;
   }
 }

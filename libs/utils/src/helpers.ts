@@ -3,6 +3,7 @@ import { randomBytes, randomInt } from 'crypto';
 import * as qrcode from 'qrcode';
 import { InternalServerErrorException } from '@nestjs/common';
 import { PlantSetupEnum } from 'libs/enums';
+import { writeFile } from 'fs/promises';
 
 export const readFileContents = async (filePath: string): Promise<string> => {
   try {
@@ -335,4 +336,9 @@ export function addCumulativeToBuckets(buckets: any) {
 }
 export function logStringify(str: any) {
   console.log(JSON.stringify(str, null, 4));
+}
+export async function saveJson(
+  data: any
+): Promise<void> {
+  await writeFile('a.json', JSON.stringify(data, null, 2), "utf8");
 }
