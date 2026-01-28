@@ -1,0 +1,29 @@
+{
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
+  "rootDir": ".",
+  "testEnvironment": "node",
+  "testRegex": ".e2e-spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "^@app/config(|/.*)$": "<rootDir>/../libs/config/src/$1",
+    "^@app/constants(|/.*)$": "<rootDir>/../libs/constants/src/$1",
+    "^@app/database(|/.*)$": "<rootDir>/../libs/database/src/$1",
+    "^@app/decorators(|/.*)$": "<rootDir>/../libs/decorators/src/$1",
+    "^@app/dtos(|/.*)$": "<rootDir>/../libs/dtos/src/$1",
+    "^@app/enums(|/.*)$": "<rootDir>/../libs/enums/src/$1",
+    "^@app/filters(|/.*)$": "<rootDir>/../libs/filters/src/$1",
+    "^@app/guards(|/.*)$": "<rootDir>/../libs/guards/src/$1",
+    "^@app/interceptors(|/.*)$": "<rootDir>/../libs/interceptors/src/$1",
+    "^@app/interfaces(|/.*)$": "<rootDir>/../libs/interfaces/src/$1",
+    "^@app/logger(|/.*)$": "<rootDir>/../libs/logger/src/$1",
+    "^@app/messaging(|/.*)$": "<rootDir>/../libs/messaging/src/$1",
+    "^@app/modules(|/.*)$": "<rootDir>/../libs/modules/src/$1",
+    "^@app/utils(|/.*)$": "<rootDir>/../libs/utils/src/$1"
+  }
+}

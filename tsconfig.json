@@ -1,0 +1,113 @@
+{
+  "compilerOptions": {
+    "types": ["node"], "typeRoots": ["src/admin/types", "./node_modules/@types"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "resolvePackageJsonExports": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2023",
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
+    "skipLibCheck": true,
+    "strictNullChecks": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "noFallthroughCasesInSwitch": false,
+    "declaration": false,
+    "sourceMap": true,
+    "noEmitOnError": false,
+    "paths": {
+      "@app/config": [
+        "libs/config/src"
+      ],
+      "@app/config/*": [
+        "libs/config/src/*"
+      ],
+      "@app/constants": [
+        "libs/constants/src"
+      ],
+      "@app/constants/*": [
+        "libs/constants/src/*"
+      ],
+      "@app/database": [
+        "libs/database/src"
+      ],
+      "@app/database/*": [
+        "libs/database/src/*"
+      ],
+      "@app/decorators": [
+        "libs/decorators/src"
+      ],
+      "@app/decorators/*": [
+        "libs/decorators/src/*"
+      ],
+      "@app/dtos": [
+        "libs/dtos/src"
+      ],
+      "@app/dtos/*": [
+        "libs/dtos/src/*"
+      ],
+      "@app/enums": [
+        "libs/enums/src"
+      ],
+      "@app/enums/*": [
+        "libs/enums/src/*"
+      ],
+      "@app/filters": [
+        "libs/filters/src"
+      ],
+      "@app/filters/*": [
+        "libs/filters/src/*"
+      ],
+      "@app/guards": [
+        "libs/guards/src"
+      ],
+      "@app/guards/*": [
+        "libs/guards/src/*"
+      ],
+      "@app/interceptors": [
+        "libs/interceptors/src"
+      ],
+      "@app/interceptors/*": [
+        "libs/interceptors/src/*"
+      ],
+      "@app/interfaces": [
+        "libs/interfaces/src"
+      ],
+      "@app/interfaces/*": [
+        "libs/interfaces/src/*"
+      ],
+      "@app/logger": [
+        "libs/logger/src"
+      ],
+      "@app/logger/*": [
+        "libs/logger/src/*"
+      ],
+      "@app/messaging": [
+        "libs/messaging/src"
+      ],
+      "@app/messaging/*": [
+        "libs/messaging/src/*"
+      ],
+      "@app/modules": [
+        "libs/modules/src"
+      ],
+      "@app/modules/*": [
+        "libs/modules/src/*"
+      ],
+      "@app/utils": [
+        "libs/utils/src"
+      ],
+      "@app/utils/*": [
+        "libs/utils/src/*"
+      ]
+    }
+  }
+}

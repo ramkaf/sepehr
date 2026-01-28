@@ -1,0 +1,1 @@
+export const ELASTIC_CLIENT = 'ELASTIC_CLIENT';
