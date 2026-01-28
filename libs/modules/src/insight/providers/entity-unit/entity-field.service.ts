@@ -137,12 +137,10 @@ export class EntityFieldService {
     });
   }
   @Cacheable('24h')
-  async fetchStaticValueByTag(
-    plantId: number,
-    fieldTag: string,
-  ): Promise<string | null> {
+  async fetchStaticValueByTag(plantId: number, fieldTag: string) {
     const field = await this.fetchPlantEntityFieldByTag(plantId, fieldTag);
-    return field ? field.staticValue : null;
+    const value = field ? field.staticValue : null;
+    return { value, field };
   }
 
   @Cacheable('24h')
@@ -234,5 +232,20 @@ export class EntityFieldService {
       },
     });
     return parameter?.fieldsPeriod ?? null;
+  }
+
+  @Cacheable()
+  async fetchPlantAssetsParameter(plantUuid: string) {
+    const plant = await this.plantService.fetchWithFleet(plantUuid);
+    return await this.entityFieldRepository.find({
+      where: {
+        browserGroup: {
+          name: BrowserGroupEnum.ASSETS,
+        },
+        entityType: {
+          plantId: plant.eId,
+        },
+      },
+    });
   }
 }

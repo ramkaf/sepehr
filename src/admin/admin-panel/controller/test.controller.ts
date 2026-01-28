@@ -7,6 +7,7 @@ import {
   Inject,
   UseInterceptors,
   ClassSerializerInterceptor,
+  forwardRef,
 } from '@nestjs/common';
 import { Public } from 'libs/decorators';
 import { BrowserService } from '../../../dashboard/browser/providers/browser.service';
@@ -20,12 +21,19 @@ import {
   PlantService,
   QomService,
   Baft1Service,
+  ChartManagementService,
+  UserComponentConfigService,
+  MaintenanceStepService,
+  CompanyService,
 } from 'libs/modules';
 import { ClientProxy } from '@nestjs/microservices';
 import { InitPlantService } from '../../init-plant/providers/init-plant.service';
 import { NOTIFICATION_RABBITMQ_SERVICE } from '@app/modules/messaging';
 import { EntityField, EntityModel } from 'libs/database';
 import { PeriodEnum } from 'libs/interfaces';
+import { InsertUserComponentConfigDto } from '@app/dtos/components';
+import { MaintenanceWarrantiesService } from '@app/modules/entity-management/maintenance/providers/maintenance-warranties.service';
+import { UserService } from 'src/user/providers/user.service';
 @UseInterceptors(ClassSerializerInterceptor)
 @Controller('admin/test')
 export class TestController {
@@ -40,226 +48,256 @@ export class TestController {
     private readonly browserService: BrowserService,
     private readonly mehrizService: MehrizService,
     private readonly plantService: PlantService,
+    private readonly companyService: CompanyService,
     @Inject(NOTIFICATION_RABBITMQ_SERVICE)
     private readonly rabbitmqService: ClientProxy,
     private readonly initPlantService: InitPlantService,
+    private readonly chartManagementService: ChartManagementService,
+    private readonly usercomponentConfigservice: UserComponentConfigService,
+    @Inject(forwardRef(() => MaintenanceWarrantiesService))
+    private readonly maint: MaintenanceWarrantiesService,
   ) {}
 
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post()
   async test() {
-    const correct = await this.jarghoyeh1Service.substationAcCorrectPerformanceAllValues(
-      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
-      {} as EntityField,
-       {
-        mode: PeriodEnum.D,
-        startDate: '2025-07-27T14:15:00.000+03:30',
-        endDate: '2025-10-27T22:00:00.000+03:30',
-      },
+    return await this.companyService.fetchUserCompany(
+      'a4bd8772-7a75-4437-bb76-164c239519db',
     );
-        const raw = await this.jarghoyeh1Service.substationAcRawPerformanceAllValues(
-      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
-      {} as EntityField,
-             {
-        mode: PeriodEnum.D,
-        startDate: '2025-07-27T14:15:00.000+03:30',
-        endDate: '2025-10-27T22:00:00.000+03:30',
-      },
-    );
-        const basic = await this.jarghoyeh1Service.substationAcBasicPerformanceAllValues(
-      {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
-      {} as EntityField,
-             {
-        mode: PeriodEnum.D,
-        startDate: '2025-07-27T14:15:00.000+03:30',
-        endDate: '2025-10-27T22:00:00.000+03:30',
-      },
-    );
-    return {
-      raw , correct , basic
-    }
-    // const koshk1 = await this.koshk1Service.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const jarghoyeh2 = await this.jarghoyehService.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    //     const jarghoyeh1 = await this.jarghoyeh1Service.modAllValues({} as EntityModel ,   {} as EntityField ,
-    //    {
-    //   mode: PeriodEnum.D,
-    //   startDate: '2025-07-27T14:15:00.000+03:30',
-    //   endDate: '2025-10-27T22:00:00.000+03:30',
-    // })
-    // const jarghoyeh3 = await this.jarghoyeh3Service.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const qom = await this.qomService.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const mehriz = await this.mehrizService.modAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-
-    // const Y = await this.jarghoyehService.acCorrectPerformanceAllValues(
-    //   {} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-11-27T14:15:00.000+03:30',
-    //     endDate: '2025-12-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const jarghoyeh = await this.jarghoyehService.substationAcRawPerformanceLastValue(
-    //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // const jarghoyeh3 =
-    //   await this.jarghoyeh3Service.substationAcRawPerformanceLastValue(
-    //      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //     {} as EntityField,
-    //   );
-    // const qom = await this.qomService.substationAcRawPerformanceLastValue(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // const mehriz = await this.mehrizService.substationAcRawPerformanceLastValue(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // const koshk1 = await this.koshk1Service.substationAcRawPerformanceLastValue(
-    //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // const koshk2 = await this.koshk2Service.substationAcRawPerformanceLastValue(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // const baft = await this.baftServiceB.substationAcRawPerformanceLastValue(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    // );
-    // return {
-    //   jarghoyeh,
-    //   jarghoyeh3,
-    //   qom,
-    //   mehriz,
-    //   koshk1,
-    //   koshk2,
-    //   baft,
+    // return this.maint.add({entity_id : "sdf"})
+    // const data: InsertUserComponentConfigDto = {
+    //   componentTitle: 'x',
+    //   componentTag: 'x',
+    //   userUuid: '239a7f96-59f7-4fc7-bed5-c8c4a36595d6',
+    //   plantUuid: '5a1b2349-e924-4679-a1bb-e0f2bf44c8db',
     // };
-
-    // const jarghoyeh = await this.jarghoyehService.substationAcCorrectPerformanceAllValues(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const jarghoyeh3 =
-    //   await this.jarghoyeh3Service.substationAcCorrectPerformanceAllValues(
-    //       {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    //   );
-    // const qom = await this.qomService.substationAcCorrectPerformanceAllValues(
-    // {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const mehriz = await this.mehrizService.substationAcCorrectPerformanceAllValues(
-    // {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const koshk1 = await this.koshk1Service.substationAcCorrectPerformanceAllValues(
-    //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1 '} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-10-27T14:15:00.000+03:30',
-    //     endDate: '2025-12-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const koshk2 = await this.koshk2Service.substationAcCorrectPerformanceAllValues(
-    //  {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // const baft = await this.baftServiceB.substationAcCorrectPerformanceAllValues(
-    //  {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
-    //   {} as EntityField,
-    //   {
-    //     mode: PeriodEnum.D,
-    //     startDate: '2025-07-27T14:15:00.000+03:30',
-    //     endDate: '2025-10-27T22:00:00.000+03:30',
-    //   },
-    // );
-    // return {
-    //   koshk1
-    // jarghoyeh,
-    // jarghoyeh3,
-    // qom,
-    // mehriz,
-    // koshk1,
-    // koshk2,
-    // baft,
-    // };
-
-    const jarghoyeh =
-      await this.jarghoyehService.substationAcRawPerformanceLastValue(
-        { entityTag: 'jarghoyeh:PCC:MV POWER METER SUB 1' } as EntityModel,
-        {} as EntityField,
-      );
+    // return await this.usercomponentConfigservice.add(data);
   }
+  //   const subMod0 = await this.mehrizService.substationModLastValue(
+  //     {entityTag : 'sdf:sub 1:Moxa1242 SUB 4'} as EntityModel,
+  //     {fieldTag : 'mod[indic:0]'} as EntityField
+  //   );
+  //       const raw0 = await this.mehrizService.substationModAllValues(
+  //     {entityTag : 'sdf:sub 1:Moxa1242 SUB 4'} as EntityModel,
+  //     {fieldTag : 'mod[indic:0]'} as EntityField,
+  //            {
+  //       mode: PeriodEnum.D,
+  //       startDate: '2025-07-27T14:15:00.000+03:30',
+  //       endDate: '2025-10-27T22:00:00.000+03:30',
+  //     },
+  //   );
+  //   const subMod1 = await this.mehrizService.substationModLastValue(
+  //     {entityTag : 'sdf:sub 1:Moxa1242 SUB 4'} as EntityModel,
+  //     {fieldTag : 'mod[indic:1]'} as EntityField
+  //   );
+  //       const raw1 = await this.mehrizService.substationModAllValues(
+  //     {entityTag : 'sdf:sub 1:Moxa1242 SUB 4'} as EntityModel,
+  //     {fieldTag : 'mod[indic:1]'} as EntityField,
+  //            {
+  //       mode: PeriodEnum.D,
+  //       startDate: '2025-07-27T14:15:00.000+03:30',
+  //       endDate: '2025-10-27T22:00:00.000+03:30',
+  //     },
+  //   );
+  //   return {
+  //     subMod1 , raw1 , subMod0 , raw0
+  //   }
+  // }
+
+  //     const basic = await this.jarghoyeh1Service.substationAcBasicPerformanceAllValues(
+  //   {entityTag : 'sdf:sub 1:Inverter 1'} as EntityModel,
+  //   {} as EntityField,
+  //          {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // return {
+  //   raw , correct , basic
+  // }
+  // const koshk1 = await this.koshk1Service.modAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const jarghoyeh2 = await this.jarghoyehService.modAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  //     const jarghoyeh1 = await this.jarghoyeh1Service.modAllValues({} as EntityModel ,   {} as EntityField ,
+  //    {
+  //   mode: PeriodEnum.D,
+  //   startDate: '2025-07-27T14:15:00.000+03:30',
+  //   endDate: '2025-10-27T22:00:00.000+03:30',
+  // })
+  // const jarghoyeh3 = await this.jarghoyeh3Service.modAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const qom = await this.qomService.modAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const mehriz = await this.mehrizService.modAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+
+  // const Y = await this.jarghoyehService.acCorrectPerformanceAllValues(
+  //   {} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-11-27T14:15:00.000+03:30',
+  //     endDate: '2025-12-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const jarghoyeh = await this.jarghoyehService.substationAcRawPerformanceLastValue(
+  //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // const jarghoyeh3 =
+  //   await this.jarghoyeh3Service.substationAcRawPerformanceLastValue(
+  //      {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //     {} as EntityField,
+  //   );
+  // const qom = await this.qomService.substationAcRawPerformanceLastValue(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // const mehriz = await this.mehrizService.substationAcRawPerformanceLastValue(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // const koshk1 = await this.koshk1Service.substationAcRawPerformanceLastValue(
+  //    {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // const koshk2 = await this.koshk2Service.substationAcRawPerformanceLastValue(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // const baft = await this.baftServiceB.substationAcRawPerformanceLastValue(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  // );
+  // return {
+  //   jarghoyeh,
+  //   jarghoyeh3,
+  //   qom,
+  //   mehriz,
+  //   koshk1,
+  //   koshk2,
+  //   baft,
+  // };
+
+  // const jarghoyeh = await this.jarghoyehService.substationAcCorrectPerformanceAllValues(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const jarghoyeh3 =
+  //   await this.jarghoyeh3Service.substationAcCorrectPerformanceAllValues(
+  //       {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  //   );
+  // const qom = await this.qomService.substationAcCorrectPerformanceAllValues(
+  // {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const mehriz = await this.mehrizService.substationAcCorrectPerformanceAllValues(
+  // {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const koshk1 = await this.koshk1Service.substationAcCorrectPerformanceAllValues(
+  //   {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1 '} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-10-27T14:15:00.000+03:30',
+  //     endDate: '2025-12-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const koshk2 = await this.koshk2Service.substationAcCorrectPerformanceAllValues(
+  //  {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // const baft = await this.baftServiceB.substationAcCorrectPerformanceAllValues(
+  //  {entityTag : 'jarghoyeh:PCC:MV POWER METER SUB 1'} as EntityModel,
+  //   {} as EntityField,
+  //   {
+  //     mode: PeriodEnum.D,
+  //     startDate: '2025-07-27T14:15:00.000+03:30',
+  //     endDate: '2025-10-27T22:00:00.000+03:30',
+  //   },
+  // );
+  // return {
+  //   koshk1
+  // jarghoyeh,
+  // jarghoyeh3,
+  // qom,
+  // mehriz,
+  // koshk1,
+  // koshk2,
+  // baft,
+  // };
+
+  //   const jarghoyeh =
+  //     await this.jarghoyehService.substationAcRawPerformanceLastValue(
+  //       { entityTag: 'jarghoyeh:PCC:MV POWER METER SUB 1' } as EntityModel,
+  //       {} as EntityField,
+  //     );
+  // }
   // const isolation = await this.jarghoyeh1Service.isolationTodayLastValue()
   // const irradiance = this.jarghoyeh1Service.isolationTodayLastValue({} as EntityModel)
   // const isolation = await this.jarghoyehService.irradiationLastValue({} as EntityModel)

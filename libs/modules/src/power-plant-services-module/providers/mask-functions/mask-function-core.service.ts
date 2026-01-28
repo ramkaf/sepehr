@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { detectValueType } from 'libs/utils';
 
 @Injectable()
@@ -157,7 +161,7 @@ export class MaskFunctionCoreService {
     if (detectValueType(value) !== 'number') return value.toString();
     return value * 100;
   }
-  devideTo100(value: any) {
+  divideTo100(value: any) {
     if (detectValueType(value) !== 'number') return value.toString();
     return Number(value / 100);
   }
@@ -187,11 +191,34 @@ export class MaskFunctionCoreService {
     return scaled;
   }
   toFixed1(value: any) {
-    if (
-      detectValueType(value) === 'string' ||
-      detectValueType(value) === 'binarystring'
-    )
-      return value;
+    if (detectValueType(value) !== 'number') return value.toString();
     return parseFloat(value.toFixed(1));
+  }
+  scaleMODDaily(value: any) {
+    if (detectValueType(value) !== 'number') return value.toString();
+    if (value === 0) return 0;
+    const [fromMin, fromMax] = [4, 20];
+    const [toMin, toMax] = [-50, 100];
+    return toMin + ((value - fromMin) * (toMax - toMin)) / (fromMax - fromMin);
+  }
+  binaryToVersion(value: any) {
+    if (detectValueType(value) === 'number') return value.toString();
+
+    if (value.length !== 32 || !/^[01]+$/.test(value)) {
+      throw new InternalServerErrorException(
+        'Input must be a 32-bit binary string (32 characters of 0s and 1s)',
+      );
+    }
+
+    const octets = [
+      value.substring(0, 8),
+      value.substring(8, 16),
+      value.substring(16, 24),
+      value.substring(24, 32),
+    ];
+    const decimalOctets = octets.map((octet) => {
+      return parseInt(octet, 2);
+    });
+    return decimalOctets.join('.');
   }
 }

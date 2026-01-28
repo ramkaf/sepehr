@@ -45,7 +45,7 @@ export class UserChart {
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()', // PostgreSQL function
+    default: () => 'gen_random_uuid()', // PostgreSQL function
   })
   uuid: string;
 }

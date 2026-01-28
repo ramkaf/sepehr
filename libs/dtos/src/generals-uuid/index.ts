@@ -8,3 +8,7 @@ export * from './plant-uuid.dto';
 export * from './chart-uuid.dto';
 export * from './chart-detail-field-uuid.dto';
 export * from './chart-detail-uuid.dto';
+export * from './company-uuid.dto';
+export * from './province-uuid.dto';
+export * from './warehouse-device-uuid.dto';
+export * from './spec-uuid.dto';

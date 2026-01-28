@@ -7,10 +7,10 @@ import { SchemaEntity } from '../../decorators';
 @SchemaEntity('maintenance', 'maintenance_history')
 export class MaintenanceHistory {
   @PrimaryGeneratedColumn({ name: 'mh_id' })
-  id: number;
+  mh_id: number;
 
   @Column({ name: 'entity_id', type: 'int' })
-  entityId: number;
+  entity_id: number;
 
   @ManyToOne(() => EntityModel, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'entity_id' })
@@ -26,25 +26,25 @@ export class MaintenanceHistory {
   description: string;
 
   @Column({ name: 'previous_step_id', type: 'int', nullable: true })
-  previousStepId?: number;
+  previous_step_id?: number;
 
   @ManyToOne(() => MaintenanceStep, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'previous_step_id' })
-  previousStep?: MaintenanceStep;
+  previous_step?: MaintenanceStep;
 
   @Column({ name: 'new_step_id', type: 'int' })
   newStepId: number;
 
   @ManyToOne(() => MaintenanceStep, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'new_step_id' })
-  newStep: MaintenanceStep;
+  new_step_id: MaintenanceStep;
 
-  @Column({ name: 'acknowledged_by', type: 'int' })
+  @Column({ name: 'acknowledged_by_id', type: 'int' })
   acknowledgedById: number;
 
-  @ManyToOne(() => User, { onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'acknowledged_by' })
-  acknowledgedBy: User;
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'acknowledged_by_id' })
+  acknowledged_By?: User;
 
   @Column({
     type: 'uuid',

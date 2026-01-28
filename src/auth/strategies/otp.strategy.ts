@@ -28,8 +28,6 @@ export class OtpStrategy extends PassportStrategy(Strategy, 'otp') {
     try {
       // Verify OTP using your existing service
       const user = (await this.otpService.verify(otp, key)) as unknown as IUser;
-
-      // Generate JWT token for the authenticated user
       const token = await this.jwtToolService.getUserJwtToken(user);
 
       return {

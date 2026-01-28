@@ -71,9 +71,9 @@ export class BrowserService {
         `The requested entity with UUID '${eUuid}' was not found in the system. Please verify the UUID and try again.`,
       );
     }
-    const plant = await this.entityService.getEntityPlant(eUuid);
+    const plant = await this.entityService.fetchEntityPlant(eUuid);
     const parameters =
-      await this.entityService.getEntityFieldsWithBookmarksAndPeriod(
+      await this.entityService.fetchEntityFieldsWithBookmarksAndPeriod(
         entity.uuid,
         userUuid,
       );
@@ -180,7 +180,7 @@ export class BrowserService {
         `Entity with UUID '${eUuid}' not found. Please verify the UUID and try again.`,
       );
     }
-    const plant = await this.entityService.getEntityPlant(eUuid);
+    const plant = await this.entityService.fetchEntityPlant(eUuid);
     const { entityTag: site } = plant;
     const { eventTable } = await this.plantService.generatePlantTablesName(
       plant.eId,
@@ -210,7 +210,7 @@ export class BrowserService {
         `Entity with UUID '${eUuid}' not found. Please verify the UUID and try again.`,
       );
     }
-    const plant = await this.entityService.getEntityPlant(eUuid);
+    const plant = await this.entityService.fetchEntityPlant(eUuid);
     const { entityTag: site } = plant;
     const { stateTable } = await this.plantService.generatePlantTablesName(
       plant.eId,

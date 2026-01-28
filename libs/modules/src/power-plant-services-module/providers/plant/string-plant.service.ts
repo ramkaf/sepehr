@@ -732,10 +732,11 @@ export abstract class StringPlantService extends BasePlantService {
 
   async performanceLastValue(entity: EntityModel, entityField: EntityField) {
     try {
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'Nominal_Power',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'Nominal_Power',
+        );
       if (!nominalPower) return this.lastValueServicesDefaultExport();
       const { value: irradiance, Date: irradianceDateTime } =
         await this.irradiationLastValue(entity, entityField);
@@ -777,14 +778,16 @@ export abstract class StringPlantService extends BasePlantService {
       const hvEntities = await this.plantService.fetchPlantHvEntity(
         this.plantId,
       );
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'Nominal_Power',
-      );
-      const dcToAcMax = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'dc_to_ac_max',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'Nominal_Power',
+        );
+      const { value: dcToAcMax } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'dc_to_ac_max',
+        );
       const powerParameter =
         await this.entityFieldService.fetchHvPowerParameter(this.plantId);
       if (
@@ -1199,10 +1202,11 @@ export abstract class StringPlantService extends BasePlantService {
   ): Promise<IResponseLastValue> {
     try {
       const { entityTag } = entity;
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'Installed_Power',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'Installed_Power',
+        );
       if (!nominalPower) return this.lastValueServicesDefaultExport();
       const substations = await this.plantService.fetchPlantSubstations(
         this.plantId,
@@ -1255,10 +1259,11 @@ export abstract class StringPlantService extends BasePlantService {
     dateDetails: IDateDetails,
   ): Promise<any> {
     const { entityTag } = entity;
-    const installedPower = await this.entityFieldService.fetchStaticValueByTag(
-      this.plantId,
-      'Installed_Power',
-    );
+    const { value: installedPower } =
+      await this.entityFieldService.fetchStaticValueByTag(
+        this.plantId,
+        'Installed_Power',
+      );
     if (!installedPower) return this.allValueServicesDefaultExport();
     const { range, date_histogram } = setTimeRange(dateDetails);
     const substations = await this.plantService.fetchPlantSubstations(
@@ -1313,7 +1318,7 @@ export abstract class StringPlantService extends BasePlantService {
   }
 
   //smartlogger
-  async substaionRawProductionEnergyLastValue(
+  async substationRawProductionEnergyLastValue(
     entity: EntityModel,
   ): Promise<any> {
     try {
@@ -1341,7 +1346,7 @@ export abstract class StringPlantService extends BasePlantService {
       return this.lastValueServicesDefaultExport();
     }
   }
-  async substaionRawProductionEnergyAllValues(
+  async substationRawProductionEnergyAllValues(
     entity: EntityModel,
     entityField: EntityField,
     dateDetails: IDateDetails,
@@ -1527,6 +1532,93 @@ export abstract class StringPlantService extends BasePlantService {
       return this.allValueServicesDefaultExport();
     }
   }
+
+  async auxTransEnergyImportTodayLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ): Promise<IResponseLastValue> {
+    try {
+      const { result, Date } =
+        await this.elasticService.fetchDeviceParameterTodayLastValue(
+          this.plantIndex,
+          'AuxTrans',
+          'Energy_exp._Total',
+        );
+      if (!result) return this.lastValueServicesDefaultExport();
+      return {
+        value: result,
+        Date,
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}: internalConsumptionTodayEnergyLastValue service `,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async auxTransEnergyImportTodayAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ): Promise<ICurve> {
+    try {
+      let result;
+      const { mode } = dateDetails;
+      switch (mode) {
+        case PeriodEnum.M:
+          result = await this.energyService.fetchMVEnergyTodayAllValueMonthly(
+            this.plantIndex,
+            entity,
+            dateDetails,
+            'Energy_exp._Total',
+          );
+          break;
+        case PeriodEnum.D:
+          result = await this.energyService.fetchMVEnergyTodayAllValueDaily(
+            this.plantIndex,
+            entity,
+            dateDetails,
+            'Energy_exp._Total',
+          );
+          break;
+        case PeriodEnum.Y:
+          result = await this.energyService.fetchMVEnergyTodayAllValueYearly(
+            this.plantIndex,
+            entity,
+            dateDetails,
+            'Energy_exp._Total',
+          );
+          break;
+        case PeriodEnum.C:
+          result = await this.energyService.fetchMVEnergyTodayAllValueCustom(
+            this.plantIndex,
+            entity,
+            dateDetails,
+            'Energy_exp._Total',
+          );
+          break;
+        case PeriodEnum.Default:
+          result = await this.energyService.fetchMVEnergyTodayAllValueCustom(
+            this.plantIndex,
+            entity,
+            dateDetails,
+            'Energy_exp._Total',
+          );
+        default:
+          throw new BadRequestException(`Unsupported mode: ${mode}`);
+      }
+      return result;
+    } catch (error) {
+      console.error(
+        `error in ${this.plantTag}Service:internalConsumptionTodayEnergyAllValues`,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+
   async weatherLastValue(entity: EntityModel) {
     try {
       const elasticQuery = buildWeatherLastValueQuery(this.plantId);
@@ -1931,7 +2023,7 @@ export abstract class StringPlantService extends BasePlantService {
   async fetchFullTreeData() {
     const sources = await this.sourceService.readByPlantId(this.plantId);
     const entities =
-      await this.entityService.getPlantEntitiesWithSpecificEntityTypeTag(
+      await this.entityService.fetchPlantEntitiesWithSpecificEntityTypeTag(
         this.plantId,
         ['Inverter', 'PCC_Section', 'SmartLogger', 'Plant'],
       );
@@ -1991,7 +2083,7 @@ export abstract class StringPlantService extends BasePlantService {
             {} as EntityField,
           );
         const { value: subEnergyLossLess } =
-          await this.substaionRawProductionEnergyLastValue(substation);
+          await this.substationRawProductionEnergyLastValue(substation);
         const DIState = await this.stateService.fetchActiveState(
           this.plantTag,
           substation.entityTag,
@@ -3381,7 +3473,7 @@ return null;
   //       this.plantId,
   //   );
   //   const entities =
-  //     await this.entityService.getPlantEntitiesWithSpecificEntityTypeTag(
+  //     await this.entityService.fetchPlantEntitiesWithSpecificEntityTypeTag(
   //       this.plantId,
   //       ['Inverter', 'PCC_Section', 'SmartLogger', 'Plant']
   //     );

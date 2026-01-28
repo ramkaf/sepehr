@@ -25,6 +25,7 @@ import {
 } from '../../../rbac/decorators/requires-permission.decorator';
 import {
   ENTITY_FIELD_CREATE_PERMISSION,
+  ENTITY_FIELD_PERMISSION,
   ENTITY_FIELD_READ_PERMISSION,
   ENTITY_FIELD_REMOVE_PERMISSION,
   ENTITY_FIELD_UPDATE_PERMISSION,
@@ -36,7 +37,7 @@ import { BrowserGroupService, EntityFieldBaseService } from 'libs/modules';
 @Auth()
 @Controller('/admin/entity-field')
 @ApiTags('entity fields')
-@ControllerPermission(ENTITY_FIELD_READ_PERMISSION)
+@ControllerPermission(ENTITY_FIELD_PERMISSION)
 export class EntityFieldController {
   constructor(
     private readonly entityFieldBaseService: EntityFieldBaseService,

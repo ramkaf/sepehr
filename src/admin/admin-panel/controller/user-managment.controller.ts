@@ -40,7 +40,7 @@ import {
 @Controller('/admin/users-management')
 @ApiTags('user-managment')
 @ControllerPermission(USER_MANAGEMENT_PERMISSION)
-export class UserManagmentController {
+export class UserManagementController {
   constructor(private readonly userManagmentService: UserManagmentService) {}
 
   @Post()

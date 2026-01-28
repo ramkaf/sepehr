@@ -7,6 +7,7 @@ import {
 import { Client } from '@elastic/elasticsearch';
 import { ELASTIC_CLIENT } from '../constants/elastic.constants';
 import { buildLatestDeviceFieldElasticQuery } from '../queries/common-queries/device-field-last-value.query';
+import { isNull } from 'util';
 
 @Injectable()
 export class ElasticService {
@@ -78,5 +79,81 @@ export class ElasticService {
     } catch (error) {
       return null;
     }
+  }
+  async fetchDeviceParameterTodayLastValue(
+    index: string,
+    device: string,
+    parameter: string,
+  ) {
+    const body = {
+      size: 0,
+      query: {
+        bool: {
+          filter: [
+            {
+              term: {
+                'DeviceName.keyword': device,
+              },
+            },
+          ],
+        },
+      },
+      aggs: {
+        current_value: {
+          top_hits: {
+            size: 1,
+            sort: [
+              {
+                DateTime: {
+                  order: 'desc',
+                },
+              },
+            ],
+            _source: {
+              includes: [parameter, 'DeviceName', 'DateTime'],
+            },
+          },
+        },
+        today_midnight: {
+          filter: {
+            range: {
+              DateTime: {
+                gte: 'now/d',
+                lt: 'now/d+1d',
+              },
+            },
+          },
+          aggs: {
+            first_after_midnight: {
+              top_hits: {
+                size: 1,
+                sort: [
+                  {
+                    DateTime: {
+                      order: 'asc',
+                    },
+                  },
+                ],
+                _source: {
+                  includes: [parameter, 'DeviceName', 'DateTime'],
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const response = await this.search(index, body);
+    const currentValue =
+      response.aggregations.current_value.hits.hits[0]._source[parameter] ??
+      null;
+    const Date =
+      response.aggregations.current_value.hits.hits[0]._source['DateTime'] ??
+      null;
+    const midnightValue =
+      response.aggregations.today_midnight.first_after_midnight.hits.hits[0]
+        ._source[parameter] ?? null;
+    if (!midnightValue || !currentValue) return { result: null, Date: null };
+    return { result: currentValue - midnightValue, Date };
   }
 }

@@ -1,11 +1,13 @@
-import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsPositive } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsUUID } from 'class-validator';
 
 export class EntityTypeIdDto {
-  @Type(() => Number)
   @IsNotEmpty()
-  @IsInt()
-  @IsPositive()
-  @Transform(({ value }) => parseInt(value, 10))
-  etId: number;
+  @IsUUID()
+  entity_type_id: string;
+}
+
+export class EntityTypeIdOptionalDto {
+  @IsOptional()
+  @IsUUID()
+  entity_type_id?: string;
 }

@@ -294,7 +294,7 @@ export class Jarghoyeh1Service extends SantralPlantService {
   ): Promise<any> {
     try {
       const { entityTag } = entity;
-      const installedPower =
+      const { value: installedPower } =
         await this.entityFieldService.fetchStaticValueByTag(
           Jarghoyeh1Service.PLANT_ID,
           'Installed_Power',
@@ -409,14 +409,16 @@ export class Jarghoyeh1Service extends SantralPlantService {
   ) {
     const { entityTag } = entity;
     const subNum = entityTag.split(':')[1].split(' ')[1];
-    const installedPower = await this.entityFieldService.fetchStaticValueByTag(
-      Jarghoyeh1Service.PLANT_ID,
-      'Installed_Power',
-    );
-    const dcToAcMax = await this.entityFieldService.fetchStaticValueByTag(
-      Jarghoyeh1Service.PLANT_ID,
-      'dc_to_ac_max',
-    );
+    const { value: installedPower } =
+      await this.entityFieldService.fetchStaticValueByTag(
+        Jarghoyeh1Service.PLANT_ID,
+        'Installed_Power',
+      );
+    const { value: dcToAcMax } =
+      await this.entityFieldService.fetchStaticValueByTag(
+        Jarghoyeh1Service.PLANT_ID,
+        'dc_to_ac_max',
+      );
     if (!installedPower)
       throw new BadRequestException('Invalid installed power value');
     let substationCount = 0;
@@ -537,7 +539,7 @@ export class Jarghoyeh1Service extends SantralPlantService {
       Jarghoyeh1Service.PLANT_ID,
     );
     const entities =
-      await this.entityService.getPlantEntitiesWithSpecificEntityTypeTag(
+      await this.entityService.fetchPlantEntitiesWithSpecificEntityTypeTag(
         Jarghoyeh1Service.PLANT_ID,
         ['Inverter', 'PCC_Section', 'SmartLogger', 'Plant'],
       );

@@ -58,6 +58,8 @@ async function bootstrap() {
     .addTag('alarm configs')
     .addTag('sources')
     .addTag('charts')
+    .addTag('chart-management')
+    .addTag('user-component-config')
     .addTag('chart details')
     .addTag('chart detail fields')
     .addTag('chart entities')

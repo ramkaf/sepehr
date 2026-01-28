@@ -22,7 +22,7 @@ import {
 } from 'libs/modules';
 import { PlantDayLightService } from '../providers/day-light/day-light.service';
 import { IDateDetails, IMappedAllValueResult } from 'libs/interfaces';
-import { setTimeRange } from 'libs/utils';
+import { getFormattedDateTime, setTimeRange } from 'libs/utils';
 @Injectable()
 export class QomService extends StringPlantService {
   private static readonly PLANT_INDEX = 'qom-*';
@@ -67,6 +67,7 @@ export class QomService extends StringPlantService {
   }
   override async modLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildQomPowerPlantModQuery();
@@ -313,6 +314,164 @@ export class QomService extends StringPlantService {
     } catch (error) {
       console.error(
         `error in ${this.plant_Tag}: modDailyAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+  async substationModLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
+    try {
+      const { entityTag } = entity;
+      const { fieldTag } = entityField;
+      const mappingModParameter = [
+        {
+          fieldTag: 'mod[indic:0]',
+          parameter: 'AI0Scaling',
+        },
+        {
+          fieldTag: 'mod[indic:1]',
+          parameter: 'AI1Scaling',
+        },
+      ];
+      const [_, __, device] = entityTag.split(':');
+      const mappedObj = mappingModParameter.find(
+        (item) => item.fieldTag === fieldTag,
+      );
+      if (!mappedObj) return this.lastValueServicesDefaultExport();
+      const { parameter } = mappedObj;
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            should: [{ term: { 'DeviceName.keyword': device } }],
+          },
+        },
+        aggs: {
+          last_values: {
+            top_hits: {
+              _source: [parameter, 'DateTime'],
+              sort: [
+                {
+                  DateTime: {
+                    order: 'desc',
+                  },
+                },
+              ],
+              size: 1,
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(
+        QomService.PLANT_INDEX,
+        body,
+      );
+      const mod =
+        response.aggregations.last_values.hits.hits[0]._source[parameter];
+      if (!mod || mod === undefined || mod === 4 || mod === 20)
+        return this.lastValueServicesDefaultExport();
+      const maskedValue = this.maskFunctionService.mask(mod, [
+        MaskFunctionsEnum.scaleMOD,
+        MaskFunctionsEnum.ToFixed1,
+      ]) as number;
+      return {
+        value: maskedValue,
+        Date: getFormattedDateTime(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plant_Tag} services-substationModLastValue:`,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationModAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ): Promise<ICurve> {
+    try {
+      const { entityTag } = entity;
+      const { fieldTag } = entityField;
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const mappingModParameter = [
+        {
+          fieldTag: 'mod[indic:0]',
+          parameter: 'AI0Scaling',
+        },
+        {
+          fieldTag: 'mod[indic:1]',
+          parameter: 'AI1Scaling',
+        },
+      ];
+      const [_, __, device] = entityTag.split(':');
+      const mappedObj = mappingModParameter.find(
+        (item) => item.fieldTag === fieldTag,
+      );
+      if (!mappedObj) return this.allValueServicesDefaultExport();
+      const { parameter } = mappedObj;
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must: [
+              {
+                term: {
+                  'DeviceName.keyword': device,
+                },
+              },
+              {
+                range,
+              },
+            ],
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              avg_moxa: {
+                avg: {
+                  script: {
+                    source: `
+                  if (doc['AI0Scaling'].size() > 0
+                      && doc['AI0Scaling'].value != 4
+                      && doc['AI0Scaling'].value != 20) {
+                    return doc['AI0Scaling'].value;
+                  }
+                  return null;
+                `,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(
+        QomService.PLANT_INDEX,
+        body,
+      );
+
+      const mapped: IMappedAllValueResult =
+        response.aggregations.intervals.buckets.map((item) => {
+          const mod = item.avg_moxa.value;
+          return {
+            value: mod,
+            Date: item.key_as_string,
+          };
+        });
+      return this.curveService.buildCurveWithOneValue(mapped, [
+        MaskFunctionsEnum.scaleMOD,
+        MaskFunctionsEnum.ToFixed1,
+      ]);
+    } catch (error) {
+      console.error(
+        `error in ${this.plant_Tag} services-substationModAllValues:`,
         error,
       );
       return this.allValueServicesDefaultExport();

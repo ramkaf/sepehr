@@ -24,13 +24,14 @@ import { Source } from './sources.entity';
 import { UserEntityAssignment } from './plant-user.entity';
 import { Schematic } from './schematic.entity';
 import { SoilingEntities } from './soiling-entities.entity';
+import { Warranty } from './maintenance';
 
 @SchemaEntity('main', 'entity')
 export class EntityModel {
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()', // PostgreSQL function
+    default: () => 'gen_random_uuid()', // PostgreSQL function
   })
   uuid: string;
 
@@ -125,4 +126,7 @@ export class EntityModel {
 
   @OneToMany(() => SoilingEntities, (se) => se.entity)
   soilingEntities: SoilingEntities[];
+
+  @OneToOne(() => Warranty, (warranty) => warranty.entity)
+  warranty: Warranty;
 }

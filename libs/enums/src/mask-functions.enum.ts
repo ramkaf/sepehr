@@ -18,10 +18,11 @@ export enum MaskFunctionsEnum {
   NumberStringToNFixedNumber = 'numberStringToNFixedNumber',
   DecimalToPercentage = 'decimalToPercentage',
   FormatReadableNumber = 'formatReadableNumber',
-  DevideTo100 = 'devideTo100',
+  DivideTo100 = 'divideTo100',
   DivideByThousand = 'divideByThousand',
   ScaleMehrizMod = 'scaleMehrizMod',
-  BinaryToVersion = 'binaryToVersion',
   ScaleModFromBinaryValue = 'scaleModFromBinaryValue',
   ToFixed1 = 'toFixed1',
+  ScaleMODDaily = 'scaleMODDaily',
+  BinaryToVersion = 'binaryToVersion',
 }

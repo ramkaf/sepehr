@@ -337,8 +337,6 @@ export function addCumulativeToBuckets(buckets: any) {
 export function logStringify(str: any) {
   console.log(JSON.stringify(str, null, 4));
 }
-export async function saveJson(
-  data: any
-): Promise<void> {
-  await writeFile('a.json', JSON.stringify(data, null, 2), "utf8");
+export async function saveJson(data: any): Promise<void> {
+  await writeFile('a.json', JSON.stringify(data, null, 2), 'utf8');
 }

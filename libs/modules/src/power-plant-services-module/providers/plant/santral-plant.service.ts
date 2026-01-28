@@ -553,10 +553,11 @@ export abstract class SantralPlantService extends BasePlantService {
 
   async performanceLastValue(entity: EntityModel, entityField: EntityField) {
     try {
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'Nominal_Power',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'Nominal_Power',
+        );
       if (!nominalPower) return this.lastValueServicesDefaultExport();
       const { value: irradiance, Date: irradianceDateTime } =
         await this.irradiationLastValue(entity, entityField);
@@ -599,14 +600,16 @@ export abstract class SantralPlantService extends BasePlantService {
       const { range, date_histogram } = setTimeRange(dateDetails);
       const irradiationEntities =
         await this.plantService.fetchPlantIrradiationDevices(this.plantId);
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'Installed_Power',
-      );
-      const dcToAcMax = await this.entityFieldService.fetchStaticValueByTag(
-        this.plantId,
-        'dc_to_ac_max',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'Installed_Power',
+        );
+      const { value: dcToAcMax } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          this.plantId,
+          'dc_to_ac_max',
+        );
       const powerParameter = await this.entityFieldService.fetchIonParameter(
         this.plantId,
       );

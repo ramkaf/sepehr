@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RoleService } from '../../rbac/services/role.service';
 import { PasswordService } from './password.service';
-import { RedisService, User } from 'libs/database';
+import { RedisService, User, UserEntityAssignment } from 'libs/database';
 import { UserGlobalService } from 'libs/modules';
 import { CreateUserDto, UpdateUserDto, UuidDto } from 'libs/dtos';
 import { AccessTypeEnum, OtpMethodEnum } from 'libs/enums';
@@ -23,8 +23,11 @@ export class UserService {
     @Inject(forwardRef(() => RoleService))
     private readonly roleService: RoleService,
     private readonly passwordService: PasswordService,
+    @Inject(forwardRef(() => UserGlobalService))
     private readonly userGlobalService: UserGlobalService,
     private readonly redisService: RedisService,
+    @InjectRepository(UserEntityAssignment)
+    private readonly userEntityAssignmentRepository: Repository<UserEntityAssignment>,
   ) {}
 
   save(user: Partial<User>): Promise<User> {
@@ -123,6 +126,35 @@ export class UserService {
     const cachedObj = await this.redisService.getObject(REDIS_INDEX_USERS);
     if (cachedObj) return cachedObj;
     return await this.reIndexUsersIntoRedis();
+  }
+  async userHasAccessToPlant(userUuid: string, plantUuid: string) {
+    const entityAssignment = await this.userEntityAssignmentRepository.findOne({
+      where: {
+        user: {
+          uuid: userUuid,
+        },
+        entity: {
+          uuid: plantUuid,
+        },
+      },
+    });
+    if (!entityAssignment) return false;
+    return true;
+  }
+
+  async userHasAccessToCompany(userUuid: string, plantUuid: string) {
+    const entityAssignment = await this.userEntityAssignmentRepository.findOne({
+      where: {
+        user: {
+          uuid: userUuid,
+        },
+        entity: {
+          uuid: plantUuid,
+        },
+      },
+    });
+    if (!entityAssignment) return false;
+    return true;
   }
 
   async reIndexUsersIntoRedis() {

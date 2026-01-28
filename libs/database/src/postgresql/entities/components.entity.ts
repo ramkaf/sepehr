@@ -23,16 +23,16 @@ export class UserComponentsConfig {
   @Column({ name: 'component_tag', type: 'varchar', nullable: true })
   componentTag: string;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({ type: 'integer', nullable: true, default: null })
   x: number;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({ type: 'integer', nullable: true, default: null })
   y: number;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({ type: 'integer', nullable: true, default: null })
   rows: number;
 
-  @Column({ type: 'integer', nullable: true })
+  @Column({ type: 'integer', nullable: true, default: null })
   cols: number;
 
   @Column({ name: 'component_title', type: 'varchar', nullable: true })
@@ -50,12 +50,12 @@ export class UserComponentsConfig {
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'plant_id' })
-  plantId: EntityModel;
+  plant: EntityModel;
 
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()', // PostgreSQL function
+    default: () => 'gen_random_uuid()', // PostgreSQL function
   })
   uuid: string;
 }

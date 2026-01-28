@@ -9,7 +9,7 @@ import { SchemaEntity } from '../decorators';
 @SchemaEntity('main', 'media_resources')
 export class MediaResource {
   @PrimaryGeneratedColumn({ name: 'mr_id' })
-  id: number;
+  mr_id: number;
 
   @Column({
     name: 'media_tag',
@@ -17,27 +17,27 @@ export class MediaResource {
     length: 150,
     unique: true,
   })
-  mediaTag: string;
+  media_tag: string;
 
   @Column({
     name: 'media_type',
     type: 'varchar',
     length: 50,
   })
-  mediaType: string;
+  media_type: string;
 
   @Column({
     name: 'storage_type',
     type: 'varchar',
     length: 50,
   })
-  storageType: string;
+  storage_type: string;
 
   @Column({ name: 'content_url', type: 'text', nullable: true })
-  contentUrl?: string;
+  content_url?: string;
 
   @Column({ name: 'content_inline', type: 'text', nullable: true })
-  contentInline?: string;
+  content_inline?: string;
 
   @Column({
     name: 'content_identifier',
@@ -45,28 +45,28 @@ export class MediaResource {
     length: 255,
     nullable: true,
   })
-  contentIdentifier?: string;
+  content_identifier?: string;
 
   @Column({
     name: 'is_active',
     type: 'boolean',
     default: true,
   })
-  isActive: boolean;
+  is_active: boolean;
 
   @CreateDateColumn({
     name: 'created_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  updatedAt: Date;
+  updated_at: Date;
 
   @Column({
     type: 'uuid',

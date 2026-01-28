@@ -26,7 +26,7 @@ export class NonComputationalService {
     const entity = await this.entityBaseService.findOne(eUuid);
     if (!entity)
       throw new BadRequestException(`entity with uuid :${eUuid} not found`);
-    const plant = await this.entityService.getEntityPlant(eUuid);
+    const plant = await this.entityService.fetchEntityPlant(eUuid);
     const parameters =
       await this.entityService.fetchDeviceParametersWithPeriodAndBookmark(
         eUuid,

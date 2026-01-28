@@ -25,8 +25,7 @@ export class ApiLoggerService {
     status: number | null = null,
   ): ApiLog {
     const { method, url, body, query, params, ip, user } = request;
-    const userUuid = user ? user.id : null;
-    // const userId = request.user ? ({ id: request.user.id } as IPayload) : null;
+    const userUuid = null;
     const responseStatus = status ? status : response.statusCode;
 
     const apiLog = new ApiLog();

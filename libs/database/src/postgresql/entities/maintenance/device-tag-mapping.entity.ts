@@ -12,27 +12,27 @@ import { EntityType } from '../entity-types.entity';
 @SchemaEntity('maintenance', 'device_tag_mapping')
 export class DeviceTagMapping {
   @PrimaryGeneratedColumn({ name: 'dtm_id' })
-  id: number;
+  dtm_id: number;
 
   @Column({
     name: 'entity_type_id',
     type: 'int',
     unique: true,
   })
-  entityTypeId: number;
+  entity_type_id: number;
 
   @ManyToOne(() => EntityType, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'entity_type_id' })
-  entityType: EntityType;
+  entity_type: EntityType;
 
   @Column({ name: 'model_tag', type: 'varchar', length: 255, nullable: true })
-  modelTag?: string;
+  model_tag?: string;
 
   @Column({ name: 'sn_tag', type: 'varchar', length: 255, nullable: true })
-  snTag?: string;
+  sn_tag?: string;
 
   @Column({ name: 'pn_tag', type: 'varchar', length: 255, nullable: true })
-  pnTag?: string;
+  pn_tag?: string;
 
   @Column({
     type: 'uuid',
@@ -46,14 +46,14 @@ export class DeviceTagMapping {
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  updatedAt: Date;
+  updated_at: Date;
 
   @Column({
     name: 'mapping_title',
@@ -63,5 +63,5 @@ export class DeviceTagMapping {
     comment:
       'Descriptive title for identifying the mapping (e.g., "qom inverters", "jarghoyeh smartLoggers")',
   })
-  mappingTitle?: string;
+  mapping_title?: string;
 }

@@ -15,14 +15,14 @@ export class JwtToolService {
   }
   public async getUserJwtToken(user: IUser): Promise<string> {
     const permissions = await this.dataSource.query(
-      'SELECT p.per_title FROM main.users_permissions up inner join main.permissions p on p.per_id = up.per_id WHERE user_id = $1',
-      [user.id],
+      'SELECT p.per_title FROM main.users_permissions up inner join main.permissions p on p.per_id = up.per_id INNER JOIN main.users u ON up.user_id = u.id WHERE u.uuid = $1',
+      [user.uuid],
     );
     const payload: IPayload = {
       id: user.uuid,
       firstName: user.firstName,
       lastName: user.lastName,
-      permissions: permissions.map((item) => item.per_tag),
+      permissions: permissions.map((item) => item.per_title),
     };
     return await this.getJwtToken(payload);
   }

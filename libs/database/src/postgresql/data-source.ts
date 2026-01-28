@@ -26,7 +26,7 @@ import { UserComponentsConfig } from './entities/components.entity';
 import { Permission } from './entities/permissions.entity';
 import { ApiLog } from './entities/log.entity';
 import { Source } from './entities/sources.entity';
-import { Schematic } from './entities';
+import { DeviceMaintenance, Schematic, Spec } from './entities';
 import { SchematicCategory } from './entities/schematic-category.entity';
 import { Province } from './entities/province.entity';
 import { PlantType } from './entities/plant-type.entity';
@@ -35,7 +35,7 @@ import { MediaResource } from './entities/media-resource.entity';
 import { WarehouseDevice } from './entities/maintenance/warehouse-devices.entity';
 import { MaintenanceStep } from './entities/maintenance/maintenance-step.entity';
 import { MaintenanceHistory } from './entities/maintenance/maintenance-history';
-import { DeviceWarranty } from './entities/maintenance/device-warranties.entity';
+import { Warranty } from './entities/maintenance/device-warranties.entity';
 import { DeviceTagMapping } from './entities/maintenance/device-tag-mapping.entity';
 import { DeviceSpec } from './entities/maintenance/device-spec.entity';
 import { FleetManagerColumns } from './entities/fleet-manager-columns.entity';
@@ -52,7 +52,7 @@ export const AppDataSource = new DataSource({
   password: process.env['POSTGRES_PASSWORD'] || 'postgres',
   database: process.env['POSTGRES_DB'] || 'postgres',
   synchronize: false, // set true only for dev
-  logging: true,
+  logging: false,
   entities: [
     Source,
     User,
@@ -88,11 +88,13 @@ export const AppDataSource = new DataSource({
     WarehouseDevice,
     MaintenanceStep,
     MaintenanceHistory,
-    DeviceWarranty,
+    Warranty,
     DeviceTagMapping,
     DeviceSpec,
     FleetManagerColumns,
     UserFleetColumnsPreferences,
     CompanyWarehouse,
+    Spec,
+    DeviceMaintenance,
   ],
 });

@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AccessType, User } from 'libs/database';
 import { Repository } from 'typeorm';
 import { AccessTypeEnum } from 'libs/enums';
 import { BaseService } from '../common/providers/base.service';
 import { UpdateUserDto } from 'libs/dtos';
+import { ERROR_MESSAGES } from 'libs/constants';
 
 @Injectable()
 export class UserGlobalService extends BaseService<User> {

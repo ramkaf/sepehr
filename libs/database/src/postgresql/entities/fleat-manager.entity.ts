@@ -40,12 +40,15 @@ export class FleetManager {
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()', // PostgreSQL function
+    default: () => 'gen_random_uuid()', // PostgreSQL function
   })
   uuid: string;
 
   @Column({ name: 'plant_id', type: 'integer', nullable: true })
   plantId: number | null;
+
+  @Column({ name: 'company_id', type: 'integer', nullable: true })
+  companyId: number | null;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   setupStartedAt: Date;
@@ -69,5 +72,5 @@ export class FleetManager {
     onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'company_id' })
-  company: PlantType;
+  company: Company;
 }

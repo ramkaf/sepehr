@@ -17,6 +17,7 @@ import { EntityField } from './entity-field.entity';
 import { EntityTypeFieldSetupStatus } from './entity-type-field-setup-status.entity.dto';
 import { Schematic } from './schematic.entity';
 import { SchematicCategory } from './schematic-category.entity';
+import { DeviceTagMapping } from './maintenance';
 
 @SchemaEntity('main', 'entity_types')
 @Index(['tag', 'plantId'], { unique: true })
@@ -85,10 +86,16 @@ export class EntityType {
   @OneToMany(() => ChartDetail, (chartDetail) => chartDetail.entityType)
   chartDetails: ChartDetail[];
 
+  @OneToMany(
+    () => DeviceTagMapping,
+    (deviceTagMapping) => deviceTagMapping.entity_type,
+  )
+  deviceTagMappings: DeviceTagMapping[];
+
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()', // PostgreSQL function
+    default: () => 'gen_random_uuid()', // PostgreSQL function
   })
   uuid: string;
 }

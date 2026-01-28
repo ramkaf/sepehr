@@ -78,7 +78,7 @@ export class FleetManagerColumns {
     type: 'uuid',
     nullable: false,
     unique: true,
-    default: () => 'uuid_generate_v4()',
+    default: () => 'gen_random_uuid()',
   })
   uuid: string;
 }

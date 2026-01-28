@@ -5,12 +5,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { SchemaEntity } from '../../decorators';
 import { EntityModel } from '../entity.entity';
 
 @SchemaEntity('maintenance', 'device_warranties')
-export class DeviceWarranty {
+export class Warranty {
   @PrimaryGeneratedColumn({ name: 'w_id' })
   id: number;
 
@@ -19,9 +20,11 @@ export class DeviceWarranty {
     type: 'int',
     unique: true,
   })
-  entityId: number;
+  entity_id: number;
 
-  @ManyToOne(() => EntityModel, { onDelete: 'CASCADE' })
+  @OneToOne(() => EntityModel, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'entity_id' })
   entity: EntityModel;
 
@@ -30,30 +33,31 @@ export class DeviceWarranty {
     type: 'varchar',
     length: 255,
   })
-  warrantyProvider: string;
+  warranty_provider: string;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string;
+  @Column({ type: 'text', default: null, nullable: true })
+  description: string;
 
   @Column({
     name: 'start_date',
     type: 'timestamptz',
   })
-  startDate: Date;
+  start_date: Date;
 
   @Column({
     name: 'end_date',
     type: 'timestamptz',
     nullable: true,
+    default: null,
   })
-  endDate?: Date;
+  end_date: Date | null;
 
   @Column({
     name: 'is_active',
     type: 'boolean',
     default: true,
   })
-  isActive: boolean;
+  is_active: boolean;
 
   @Column({
     type: 'uuid',

@@ -3,6 +3,8 @@ import {
   CanActivate,
   ExecutionContext,
   BadRequestException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import {
@@ -20,6 +22,7 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private readonly redisService: RedisService,
+    @Inject(forwardRef(() => RoleService))
     private readonly roleService: RoleService,
     private readonly userService: UserService,
   ) {}

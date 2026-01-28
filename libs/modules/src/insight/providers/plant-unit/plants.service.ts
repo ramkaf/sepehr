@@ -61,19 +61,21 @@ export class PlantService {
     private readonly entityTypeRepository: Repository<EntityType>,
     @InjectRepository(EntityModel)
     private readonly entityRepository: Repository<EntityModel>,
-    @InjectRepository(EntityField)
-    private readonly entityFieldRepository: Repository<EntityField>,
+    @InjectRepository(UserEntityAssignment)
+    private readonly userEntityAssignmentRepository: Repository<UserEntityAssignment>,
   ) {}
   async resolvePlantEnergy(plantId: number) {
     try {
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        plantId,
-        'Installed_Power',
-      );
-      const dcToAcMax = await this.entityFieldService.fetchStaticValueByTag(
-        plantId,
-        'dc_to_ac_max',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          plantId,
+          'Installed_Power',
+        );
+      const { value: dcToAcMax } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          plantId,
+          'dc_to_ac_max',
+        );
 
       if (!dcToAcMax || !nominalPower) {
         throw new InternalServerErrorException(
@@ -100,14 +102,16 @@ export class PlantService {
   }
   async resolveSubstationEnergy(plantId: number) {
     try {
-      const nominalPower = await this.entityFieldService.fetchStaticValueByTag(
-        plantId,
-        'Installed_Power',
-      );
-      const dcToAcMax = await this.entityFieldService.fetchStaticValueByTag(
-        plantId,
-        'dc_to_ac_max',
-      );
+      const { value: nominalPower } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          plantId,
+          'Installed_Power',
+        );
+      const { value: dcToAcMax } =
+        await this.entityFieldService.fetchStaticValueByTag(
+          plantId,
+          'dc_to_ac_max',
+        );
       if (!dcToAcMax || !nominalPower) {
         throw new InternalServerErrorException(
           'Nominal power or DC-to-AC ratio is missing or undefined.',
@@ -139,12 +143,12 @@ export class PlantService {
   }
   async resolvePlantPerformanceLimit(plantId: number) {
     try {
-      const minIrradianceToCalculatePerformanceDataBaseResponse =
+      const { value: minIrradianceToCalculatePerformanceDataBaseResponse } =
         await this.entityFieldService.fetchStaticValueByTag(
           plantId,
           'min_performance_irradiance',
         );
-      const alphaFactorDataBaseResponse =
+      const { value: alphaFactorDataBaseResponse } =
         await this.entityFieldService.fetchStaticValueByTag(
           plantId,
           'alpha_factor',
@@ -178,12 +182,12 @@ export class PlantService {
   }
   async resolvePlantPerformanceRatioCredential(plantId: number) {
     try {
-      const commissioningYearDataBaseResponse =
+      const { value: commissioningYearDataBaseResponse } =
         await this.entityFieldService.fetchStaticValueByTag(
           plantId,
           'commissioning_year',
         );
-      const annualPerformanceDecreasePercentDataBaseResponse =
+      const { value: annualPerformanceDecreasePercentDataBaseResponse } =
         await this.entityFieldService.fetchStaticValueByTag(
           plantId,
           'annual_performance_decrease_percent',
@@ -228,7 +232,29 @@ export class PlantService {
       relations: { fleetManager: true, entityType: true },
     });
   }
-
+  async fetchPlant(uuid: string): Promise<EntityModel> {
+    const plant = await this.entityRepository.findOne({
+      where: {
+        uuid,
+        entityType: {
+          tag: 'Plant',
+        },
+      },
+    });
+    // const plant = await this.entityRepository
+    //   .createQueryBuilder('plant')
+    //   .leftJoinAndSelect(
+    //     'plant.entityType',
+    //     'entityType',
+    //     'entityType.etId = plant.entityType',
+    //   )
+    //   .where('plant.uuid = :uuid', { uuid })
+    //   .where('entityType.tag = :tag', { tag : 'Plant' })
+    //   .getOne();
+    if (!plant)
+      throw new BadRequestException(ERROR_MESSAGES.PLANT_NOT_FOUND(uuid));
+    return plant;
+  }
   async fetchWithFleet(uuid: string): Promise<EntityModel> {
     const plant = await this.entityRepository
       .createQueryBuilder('plant')
@@ -804,7 +830,15 @@ export class PlantService {
     const stateTable = `states.${plantTag}`;
     const statusAlertTable = `status_alerts.${plantTag}`;
     const eventTable = `events.${plantTag}`;
-    return { plant, eventTable, stateTable, statusTable, statusAlertTable };
+    const assetTable = `assets.${plantTag}`;
+    return {
+      plant,
+      eventTable,
+      stateTable,
+      statusTable,
+      statusAlertTable,
+      assetTable,
+    };
   }
 
   generatePlantTablesByPlantTag(plantTag: string) {
@@ -818,10 +852,11 @@ export class PlantService {
   @Cacheable()
   async fetchPlantDataDelay(plantUuid: string): Promise<number> {
     const plant = await this.fetchWithFleet(plantUuid);
-    const dataDelay = await this.entityFieldService.fetchStaticValueByTag(
-      plant.eId,
-      'Data_Delay',
-    );
+    const { value: dataDelay } =
+      await this.entityFieldService.fetchStaticValueByTag(
+        plant.eId,
+        'Data_Delay',
+      );
     if (!dataDelay)
       throw new InternalServerErrorException(
         'data delay not found for this plant',
@@ -864,7 +899,6 @@ export class PlantService {
       .filter((item) => item.sourceName.includes('Substation'))
       .map((item) => item.sourceName);
   }
-
   private checkAllStatusTrue(data: any[], field: string) {
     if (!Array.isArray(data) || data.length === 0) {
       return false;

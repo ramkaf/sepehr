@@ -15,14 +15,14 @@ import { SchemaEntity } from '../../decorators';
 @SchemaEntity('maintenance', 'device_maintenance')
 export class DeviceMaintenance {
   @PrimaryGeneratedColumn({ name: 'dm_id' })
-  id: number;
+  dm_id: number;
 
   @Column({
     name: 'entity_id',
     type: 'int',
     unique: true,
   })
-  entityId: number;
+  entity_id: number;
 
   @ManyToOne(() => EntityModel, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'entity_id' })
@@ -33,29 +33,29 @@ export class DeviceMaintenance {
     type: 'int',
     nullable: true,
   })
-  currentStepId?: number;
+  current_step_id?: number;
 
   @ManyToOne(() => MaintenanceStep, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'current_step_id' })
-  currentStep?: MaintenanceStep;
+  current_step?: MaintenanceStep;
 
   @Column({
     name: 'last_updated_by',
     type: 'int',
     nullable: true,
   })
-  lastUpdatedById?: number;
+  last_updated_by?: number;
 
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'last_updated_by' })
-  lastUpdatedBy?: User;
+  last_updated?: User;
 
   @Column({
     name: 'media_id',
     type: 'int',
     nullable: true,
   })
-  mediaId?: number;
+  media_id?: number;
 
   @ManyToOne(() => MediaResource, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'media_id' })
@@ -72,12 +72,12 @@ export class DeviceMaintenance {
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  updatedAt: Date;
+  updated_at: Date;
 }

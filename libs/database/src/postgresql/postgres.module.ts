@@ -40,6 +40,8 @@ import {
   EntityFieldSchema,
   UserEntityAssignment,
   Schematic,
+  Spec,
+  DeviceMaintenance,
 } from './entities';
 import { PlantFieldVisibility } from './entities/plant-field-visibility.entity';
 import { EntityTypeFieldSetupStatus } from './entities/entity-type-field-setup-status.entity.dto';
@@ -50,10 +52,9 @@ import { Province } from './entities/province.entity';
 import { PlantType } from './entities/plant-type.entity';
 import { Company } from './entities/company.entity';
 import { MediaResource } from './entities/media-resource.entity';
-import { WarehouseDevice } from './entities/maintenance/warehouse-devices.entity';
 import { MaintenanceStep } from './entities/maintenance/maintenance-step.entity';
 import { MaintenanceHistory } from './entities/maintenance/maintenance-history';
-import { DeviceWarranty } from './entities/maintenance/device-warranties.entity';
+import { Warranty } from './entities/maintenance/device-warranties.entity';
 import { DeviceTagMapping } from './entities/maintenance/device-tag-mapping.entity';
 import { DeviceSpec } from './entities/maintenance/device-spec.entity';
 import { FleetManagerColumns } from './entities/fleet-manager-columns.entity';
@@ -118,18 +119,19 @@ import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entit
           PlantType,
           Company,
           MediaResource,
-          WarehouseDevice,
           MaintenanceStep,
           MaintenanceHistory,
-          DeviceWarranty,
+          Warranty,
           DeviceTagMapping,
+          Spec,
           DeviceSpec,
           FleetManagerColumns,
           UserFleetColumnsPreferences,
           CompanyWarehouse,
+          DeviceMaintenance,
         ],
         synchronize: false,
-        logging: configService.pgLogging,
+        logging: false,
       }),
       extraProviders: [
         {

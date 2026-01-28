@@ -9,31 +9,30 @@ import {
 import { MediaResource } from '../media-resource.entity';
 import { SchemaEntity } from '../../decorators';
 import { EntityModel } from '../entity.entity';
+import { Spec } from './spec.entity';
+import { EntityType } from '../entity-types.entity';
 
 @SchemaEntity('maintenance', 'device_specs')
 export class DeviceSpec {
   @PrimaryGeneratedColumn({ name: 'ds_id' })
-  id: number;
+  ds_id: number;
 
-  @Column({ name: 'entity_id', type: 'int' })
-  entityId: number;
+  @Column({ name: 'entity_type_id', type: 'int' })
+  entity_type_id: number;
 
   @ManyToOne(() => EntityModel, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'entity_id' })
-  entity: EntityModel;
+  @JoinColumn({ name: 'entity_type_id' })
+  entity_type: EntityType;
 
-  @Column({ name: 'spec_key', type: 'varchar', length: 150 })
-  specKey: string;
+  @Column({ name: 'spec_id', type: 'int' })
+  spec_id: number;
 
-  @Column({ name: 'spec_value', type: 'text' })
-  specValue: string;
+  @ManyToOne(() => Spec, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'spec_id' })
+  spec: Spec;
 
-  @Column({ name: 'media_id', type: 'int', nullable: true })
-  mediaId?: number;
-
-  @ManyToOne(() => MediaResource, { onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'media_id' })
-  media?: MediaResource;
+  @Column({ name: 'spec_value', type: 'varchar', length: 255, nullable: true })
+  spec_value?: string;
 
   @Column({
     type: 'uuid',
@@ -47,12 +46,12 @@ export class DeviceSpec {
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  updatedAt: Date;
+  updated_at: Date;
 }

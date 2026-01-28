@@ -813,4 +813,22 @@ export class Koshk1Service extends StringPlantService {
       return this.allValueServicesDefaultExport();
     }
   }
+
+  async koshk1YieldDailyLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ) {
+    return await this.fetchDeviceParameterTodayLastValue(entity, entityField);
+  }
+  async koshk1YieldDailyAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    return await this.fetchDeviceParameterTodayAllValues(
+      entity,
+      entityField,
+      dateDetails,
+    );
+  }
 }

@@ -1,4 +1,9 @@
-import { PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { SchemaEntity } from '../../decorators';
 
 @SchemaEntity('maintenance', 'maintenance_steps')
@@ -7,16 +12,16 @@ export class MaintenanceStep {
   id: number;
 
   @Column({ name: 'step_name', type: 'varchar', length: 255, unique: true })
-  stepName: string;
+  step_name: string;
 
   @Column({ name: 'step_order', type: 'int', unique: true })
-  stepOrder: number;
+  step_order: number;
 
   @Column({ type: 'text', nullable: true })
   description?: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive: boolean;
+  is_active: boolean;
 
   @Column({
     type: 'uuid',
@@ -29,5 +34,12 @@ export class MaintenanceStep {
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
+
+  @UpdateDateColumn({
+    name: 'updated_at',
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
+  updated_at: Date;
 }

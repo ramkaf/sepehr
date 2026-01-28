@@ -17,7 +17,7 @@ export class AccessType {
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()',
+    default: () => 'gen_random_uuid()',
   })
   uuid: string;
 }

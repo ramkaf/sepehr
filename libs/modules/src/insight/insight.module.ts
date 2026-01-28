@@ -30,6 +30,7 @@ import {
 import { EntityTypeService } from './providers/entity-unit/entity-type.service';
 import { EntityService } from './providers/entity-unit/entity.service';
 import { EntityFieldService } from './providers/entity-unit/entity-field.service';
+import { PlantAssetsService } from './providers/insight-unit/assets.service';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { EntityFieldService } from './providers/entity-unit/entity-field.service
     PlantEventService,
     PlantStateService,
     PlantStatusService,
+    PlantAssetsService,
     PlantService,
     FleetManagerService,
     EntityTypeService,
@@ -69,6 +71,7 @@ import { EntityFieldService } from './providers/entity-unit/entity-field.service
     PlantEventService,
     PlantStateService,
     PlantStatusService,
+    PlantAssetsService,
     PlantService,
     FleetManagerService,
     EntityTypeService,

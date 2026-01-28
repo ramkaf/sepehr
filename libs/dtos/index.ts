@@ -18,3 +18,4 @@ export * from './src/sms';
 export * from './src/alarm-config';
 export * from './src/setting/setting.dto';
 export * from './src/schematics';
+export * from './src/company';

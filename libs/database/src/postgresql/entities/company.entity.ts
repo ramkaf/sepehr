@@ -17,29 +17,28 @@ export class Company {
   @Column({
     type: 'uuid',
     unique: true,
-    default: () => 'uuid_generate_v4()',
+    default: () => 'gen_random_uuid()',
   })
   uuid: string;
 
   @Exclude()
   @PrimaryGeneratedColumn({ name: 'company_id' })
-  companyId: number;
+  company_id: number;
 
   @Column({
     name: 'company_name',
     type: 'varchar',
-    nullable: true,
     unique: true,
   })
-  companyName: string;
+  company_name: string;
 
   @Column({
     name: 'company_code',
     type: 'varchar',
     nullable: true,
-    unique: true,
+    default: null,
   })
-  companyCode: string;
+  company_code: string;
 
   @Column({
     name: 'company_tag',
@@ -47,39 +46,41 @@ export class Company {
     length: 64,
     unique: true,
   })
-  companyTag: string;
+  company_tag: string;
 
-  @Column({ type: 'text', nullable: true })
-  description?: string;
+  @Column({ type: 'text', nullable: true, default: null })
+  description: string;
 
   @Column({
     name: 'contact_email',
     type: 'varchar',
     length: 255,
     nullable: true,
+    default: null,
   })
-  contactEmail?: string;
+  contact_email: string;
 
   @Column({
     name: 'contact_phone',
     type: 'varchar',
     length: 64,
     nullable: true,
+    default: null,
   })
-  contactPhone?: string;
+  contact_phone: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, default: null, nullable: true })
   website?: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  country?: string;
+  @Column({ type: 'varchar', length: 255, default: null, nullable: true })
+  country: string;
 
-  @Column({ name: 'province_id', type: 'int', nullable: true })
-  provinceId?: number;
+  @Column({ name: 'province_id', type: 'int', default: null, nullable: true })
+  province_id: number | null;
 
   @ManyToOne(() => Province, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'province_id' })
-  province?: Province;
+  province: Province | null;
 
   @OneToMany(() => FleetManager, (entity) => entity.province)
   fleetManagers: FleetManager[];

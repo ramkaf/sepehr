@@ -3,6 +3,7 @@ export * from './insight.module';
 export * from './providers/insight-unit/events.service';
 export * from './providers/insight-unit/states.service';
 export * from './providers/insight-unit/status.service';
+export * from './providers/insight-unit/assets.service';
 
 export * from './providers/plant-unit/plants.service';
 export * from './providers/plant-unit/fleet-manager.service';

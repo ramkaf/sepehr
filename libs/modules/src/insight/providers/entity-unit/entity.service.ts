@@ -30,6 +30,14 @@ export class EntityService {
     @Inject(forwardRef(() => PlantService))
     private readonly plantService: PlantService,
   ) {}
+
+  async fetchBySources(sourceStrings: string[]) {
+    return await this.entityRepository.findOne({
+      where: {
+        entityTag: In(sourceStrings),
+      },
+    });
+  }
   async fetchPlantEntities(plantUuid: string): Promise<EntityModel[]> {
     const entity_types =
       await this.entityTypeService.fetchPlantDeviceEntityTypes(plantUuid);
@@ -39,7 +47,6 @@ export class EntityService {
       },
     });
   }
-
   async fetchDeviceParametersWithPeriodAndBookmark(
     eUuid: string,
     userUuid: string,
@@ -62,7 +69,6 @@ export class EntityService {
 
     return result;
   }
-
   async fetchPlantWeatherEntityType(
     plantUuid: string,
   ): Promise<EntityType | null> {
@@ -87,7 +93,15 @@ export class EntityService {
       },
     });
   }
-
+  async fetchEntityTypeOfEntity(entityUuid: string) {
+    const entity = await this.entityRepository.findOne({
+      where: {
+        uuid: entityUuid,
+      },
+      relations: ['entityType'],
+    });
+    return entity?.entityType ?? null;
+  }
   async fetchPlantDevices(plantUuid: string): Promise<EntityModel[]> {
     const entity_types =
       await this.entityTypeService.fetchPlantDeviceEntityTypes(plantUuid);
@@ -97,7 +111,7 @@ export class EntityService {
       },
     });
   }
-  async getEntityPlant(eUuid: string): Promise<EntityModel> {
+  async fetchEntityPlant(eUuid: string): Promise<EntityModel> {
     const entity = await this.entityRepository.findOne({
       where: {
         uuid: eUuid,
@@ -113,7 +127,7 @@ export class EntityService {
     const plant = await this.entityBaseService.findOneById(entityType.plantId);
     return plant;
   }
-  async getEntityFieldsWithBookmarksAndPeriod(
+  async fetchEntityFieldsWithBookmarksAndPeriod(
     eUuid: string,
     userUuid: string,
     parameters: EntityField[] = [], // : Promise<IEntityData>
@@ -147,7 +161,7 @@ export class EntityService {
     }
     return entity;
   }
-  async getPlantEntitiesWithSpecificEntityTypeTag(
+  async fetchPlantEntitiesWithSpecificEntityTypeTag(
     plantId: number,
     tags: string[],
   ): Promise<EntityModel[]> {

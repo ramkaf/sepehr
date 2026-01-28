@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RbacModule } from '../../rbac/rbac.module';
 import { AdminController } from './controller/admin.controller';
 import { AdminService } from './provider/admin.service';
@@ -7,7 +7,7 @@ import { EntityController } from './controller/entity.controller';
 import { EntityTypeController } from './controller/entity-types.controller';
 import { SettingController } from './controller/setting.controller';
 import { RoleController } from './controller/role.controller';
-import { UserManagmentController } from './controller/user-managment.controller';
+import { UserManagementController } from './controller/user-managment.controller';
 import { SourceController } from './controller/source.controller';
 import { ChartController } from './controller/charts.controller';
 import { ChartDetailController } from './controller/chart-detail.controller';
@@ -32,17 +32,23 @@ import {
   ChartDetailFieldsModule,
   ChartDetailModule,
   ChartEntityModule,
+  ChartManagementModule,
   ChartsModule,
+  CompanyModule,
   EntityFieldsModule,
   EntityModule,
   EntityTypesModule,
   InsightModule,
+  MaintenanceModule,
   PowerPlantServiceModule,
   SettingModule,
   SourceModule,
+  UserComponentConfigModule,
   UserGlobalModule,
 } from 'libs/modules';
 import { ElasticModule, PostgresModule, RedisModule } from 'libs/database';
+import { UserChartsController } from './controller/user-charts.controller';
+import { UserComponentConfigController } from './controller/user-component-config.controller';
 @Module({
   imports: [
     NestConfigModule,
@@ -76,6 +82,10 @@ import { ElasticModule, PostgresModule, RedisModule } from 'libs/database';
     InsightModule,
     PowerPlantServiceModule,
     BrowserModule,
+    ChartManagementModule,
+    UserComponentConfigModule,
+    forwardRef(() => MaintenanceModule),
+    CompanyModule,
   ],
   controllers: [
     AdminController,
@@ -85,7 +95,7 @@ import { ElasticModule, PostgresModule, RedisModule } from 'libs/database';
     AlarmConfigController,
     RoleController,
     SettingController,
-    UserManagmentController,
+    UserManagementController,
     SourceController,
     ChartController,
     ChartDetailController,
@@ -93,6 +103,8 @@ import { ElasticModule, PostgresModule, RedisModule } from 'libs/database';
     ChartEntityController,
     SettingController,
     TestController,
+    UserChartsController,
+    UserComponentConfigController,
   ],
   providers: [AdminService, UserManagmentService],
   exports: [AdminService],

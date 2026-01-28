@@ -427,7 +427,7 @@ export class JarghoyehService extends StringPlantService {
       JarghoyehService.PLANT_ID,
     );
     const entities =
-      await this.entityService.getPlantEntitiesWithSpecificEntityTypeTag(
+      await this.entityService.fetchPlantEntitiesWithSpecificEntityTypeTag(
         JarghoyehService.PLANT_ID,
         ['Inverter', 'PCC_Section', 'SmartLogger', 'Plant'],
       );
@@ -487,7 +487,7 @@ export class JarghoyehService extends StringPlantService {
             {} as EntityField,
           );
         const { value: subEnergyLossLess } =
-          await this.substaionRawProductionEnergyLastValue(substation);
+          await this.substationRawProductionEnergyLastValue(substation);
         const DIState = await this.stateService.fetchActiveState(
           JarghoyehService.PLANT_TAG,
           substation.entityTag,

@@ -11,7 +11,6 @@ import {
   Role,
   User,
 } from 'libs/database';
-// @Global()
 @Module({
   imports: [
     PostgresModule,

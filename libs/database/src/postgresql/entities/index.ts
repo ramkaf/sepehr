@@ -37,3 +37,5 @@ export * from './schematic-category.entity';
 export * from './company.entity';
 export * from './plant-type.entity';
 export * from './province.entity';
+export * from './maintenance';
+export * from './media-resource.entity';

@@ -41,6 +41,7 @@ import {
 import { ICurve } from '../../interfaces/curve.interface';
 import { PlantDayLightService } from '../day-light/day-light.service';
 import { MaskFunctionsEnum } from 'libs/enums';
+import { isNull } from 'util';
 
 @Injectable()
 export abstract class BasePlantService {
@@ -476,39 +477,621 @@ export abstract class BasePlantService {
     return this.allValueServicesDefaultExport();
   }
 
-  async fetchCountry() {
-    return await this.entityField_Service.fetchStaticValueByTag(
-      this.plant_Id,
-      'country',
-    );
+  protected async fetchDeviceParameterTodayLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+    withPath: boolean = false,
+  ): Promise<IResponseLastValue> {
+    try {
+      const { fieldTag, maskFunction } = entityField;
+      const [_, substation, device] = entity.entityTag.split(':');
+      const filter: any = [
+        {
+          term: {
+            'DeviceName.keyword': device,
+          },
+        },
+      ];
+      if (withPath) {
+        const source = await this.source_Service.mapSubToKeyWithSources(
+          this.plant_Id,
+          substation,
+        );
+        filter.push({
+          wildcard: {
+            'log.file.path.keyword': `*${source}*`,
+          },
+        });
+      }
+
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            filter,
+          },
+        },
+        aggs: {
+          current_value: {
+            top_hits: {
+              size: 1,
+              sort: [
+                {
+                  DateTime: {
+                    order: 'desc',
+                  },
+                },
+              ],
+              _source: {
+                includes: [fieldTag, 'DeviceName', 'DateTime'],
+              },
+            },
+          },
+          today_midnight: {
+            filter: {
+              range: {
+                DateTime: {
+                  gte: 'now/d',
+                  lt: 'now/d+1d',
+                },
+              },
+            },
+            aggs: {
+              first_after_midnight: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'asc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DeviceName', 'DateTime'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elastic_Service.search(
+        this.plant_Index,
+        body,
+      );
+      const currentValue =
+        response.aggregations.current_value.hits.hits[0]._source[fieldTag] ??
+        null;
+      const DateTime =
+        response.aggregations.current_value.hits.hits[0]._source['DateTime'] ??
+        null;
+      const midnightValue =
+        response.aggregations.today_midnight.first_after_midnight.hits.hits[0]
+          ._source[fieldTag] ?? null;
+      if (isNull(midnightValue) || isNull(currentValue))
+        return this.lastValueServicesDefaultExport();
+      const value = currentValue - midnightValue;
+      const masked = this.mask_Function_Service.mask(
+        value,
+        maskFunction,
+      ) as number;
+      return {
+        value: masked,
+        Date: DateTime,
+      };
+    } catch (error) {
+      console.log(
+        `error in ${this.plant_Tag}:fetchDeviceParameterTodayLastValue:${entityField.fieldTag}`,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  protected async fetchDeviceParameterTodayAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ): Promise<ICurve> {
+    try {
+      let result;
+      const { mode } = dateDetails;
+      switch (mode) {
+        case PeriodEnum.M:
+          result = await this.fetchDeviceParameterTodayAllValueMonthly(
+            entity,
+            entityField,
+            dateDetails,
+          );
+          break;
+        case PeriodEnum.D:
+          result = await this.fetchDeviceParameterTodayAllValueDaily(
+            entity,
+            entityField,
+            dateDetails,
+          );
+          break;
+        case PeriodEnum.Y:
+          result = await this.fetchDeviceParameterTodayAllValueYearly(
+            entity,
+            entityField,
+            dateDetails,
+          );
+          break;
+        case PeriodEnum.C:
+          result = await this.fetchDeviceParameterTodayAllValueCustom(
+            entity,
+            entityField,
+            dateDetails,
+          );
+          break;
+        case PeriodEnum.Default:
+          result = await this.fetchDeviceParameterTodayAllValueCustom(
+            entity,
+            entityField,
+            dateDetails,
+          );
+        default:
+          throw new BadRequestException(`Unsupported mode: ${mode}`);
+      }
+      return result;
+    } catch (error) {
+      console.error(
+        `error in ${this.plant_Tag}Service:fetchDeviceParameterTodayAllValues:${entity.entityTag}:${entityField.fieldTag}`,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
   }
 
-  async fetchNominalPower() {
+  private async fetchDeviceParameterTodayAllValueMonthly(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+    withPath: boolean = true,
+  ) {
     try {
-      const field = await this.entityField_Service.fetchPlantEntityFieldByTag(
+      const { range } = setTimeRange(dateDetails);
+      const { fieldTag, maskFunction } = entityField;
+      const [_, substation, device] = entity.entityTag.split(':');
+      const must: any = [
+        {
+          term: {
+            'DeviceName.keyword': device,
+          },
+        },
+        {
+          range,
+        },
+      ];
+      if (withPath) {
+        const source = await this.source_Service.mapSubToKeyWithSources(
+          this.plant_Id,
+          substation,
+        );
+        must.push({
+          wildcard: {
+            'log.file.path.keyword': `*${source}*`,
+          },
+        });
+      }
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must,
+          },
+        },
+        aggs: {
+          by_month: {
+            date_histogram: {
+              field: 'DateTime',
+              calendar_interval: 'month',
+              time_zone: '+03:30',
+              min_doc_count: 1,
+            },
+            aggs: {
+              first_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'asc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+              last_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'desc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elastic_Service.search(
+        this.plant_Index,
+        body,
+      );
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.by_month.buckets.forEach((item: any) => {
+        const current = item.last_value.hits.hits[0]._source[fieldTag] ?? null;
+        const midnight =
+          item.first_value.hits.hits[0]._source[fieldTag] ?? null;
+        const DateTime = item.first_value.hits.hits[0]._source['DateTime'];
+        if (current && midnight) {
+          const eToday = current - midnight;
+          mapped.push({
+            value: eToday,
+            DateTime,
+          });
+        }
+      });
+      return this.curve_Service.buildCurveWithOneValue(mapped, maskFunction);
+    } catch (error) {
+      console.log('Error getting energy today all value monthly', error);
+      return [];
+    }
+  }
+  private async fetchDeviceParameterTodayAllValueCustom(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+    withPath: boolean = true,
+  ) {
+    try {
+      const { range } = setTimeRange(dateDetails);
+      const { fieldTag, maskFunction } = entityField;
+      const [_, substation, device] = entity.entityTag.split(':');
+      const must: any = [
+        {
+          term: {
+            'DeviceName.keyword': device,
+          },
+        },
+        {
+          range,
+        },
+      ];
+      if (withPath) {
+        const source = await this.source_Service.mapSubToKeyWithSources(
+          this.plant_Id,
+          substation,
+        );
+        must.push({
+          wildcard: {
+            'log.file.path.keyword': `*${source}*`,
+          },
+        });
+      }
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must,
+          },
+        },
+        aggs: {
+          midnightValues: {
+            date_histogram: {
+              field: 'DateTime',
+              fixed_interval: '1d',
+              time_zone: '+03:30',
+            },
+            aggs: {
+              first_energy_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [{ DateTime: { order: 'asc' } }],
+                  _source: { includes: [fieldTag, 'DateTime', 'DeviceName'] },
+                },
+              },
+            },
+          },
+
+          avgEnergies: {
+            date_histogram: {
+              field: 'DateTime',
+              fixed_interval: '15m',
+              time_zone: '+03:30',
+              min_doc_count: 1,
+            },
+            aggs: {
+              avg_energy: {
+                top_hits: {
+                  size: 1,
+                  sort: [{ DateTime: { order: 'desc' } }],
+                  _source: { includes: [fieldTag, 'DateTime', 'DeviceName'] },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elastic_Service.search(
+        this.plant_Index,
+        body,
+      );
+      const aggs15 = response.aggregations.avgEnergies.buckets;
+      const aggsMidnight = response.aggregations.midnightValues.buckets;
+      const mapped: IMappedAllValueResult = [];
+      aggs15.foreach((obj: any) => {
+        const midnightMoment = obj.key_as_string.replace(
+          /T\d{2}:\d{2}:\d{2}\.\d{3}/,
+          'T00:00:00.000',
+        );
+        const midnightValue = aggsMidnight.find(
+          (item) => item.key_as_string === midnightMoment,
+        ).first_energy_value.hits.hits[0]._source[fieldTag];
+        const energy = obj.avg_energy.hits.hits[0]._source[fieldTag];
+        const eToday = energy - midnightValue;
+        mapped.push({
+          value: eToday,
+          DateTime: obj.key_as_string,
+        });
+      });
+      return this.curve_Service.buildCurveWithOneValue(mapped, maskFunction);
+    } catch (error) {
+      console.log('Error getting energy today all value custom', error);
+      return [];
+    }
+  }
+  private async fetchDeviceParameterTodayAllValueDaily(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+    withPath: boolean = true,
+  ) {
+    try {
+      const { range } = setTimeRange(dateDetails);
+      const { fieldTag, maskFunction } = entityField;
+      const [_, substation, device] = entity.entityTag.split(':');
+      const must: any = [
+        {
+          term: {
+            'DeviceName.keyword': device,
+          },
+        },
+        {
+          range,
+        },
+      ];
+      if (withPath) {
+        const source = await this.source_Service.mapSubToKeyWithSources(
+          this.plant_Id,
+          substation,
+        );
+        must.push({
+          wildcard: {
+            'log.file.path.keyword': `*${source}*`,
+          },
+        });
+      }
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must,
+          },
+        },
+        aggs: {
+          by_day: {
+            date_histogram: {
+              field: 'DateTime',
+              fixed_interval: '1d',
+              time_zone: '+03:30',
+              min_doc_count: 1,
+            },
+            aggs: {
+              first_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'asc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+              last_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'desc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elastic_Service.search(
+        this.plant_Index,
+        body,
+      );
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.by_day.buckets.foreach((item: any) => {
+        const last = item.last_value.hits.hits[0]._source[fieldTag];
+        const first = item.first_value.hits.hits[0]._source[fieldTag];
+        const eToday = last - first;
+        mapped.push({
+          value: eToday,
+          DateTime: item.key_as_string,
+        });
+      });
+      return this.curve_Service.buildCurveWithOneValue(mapped, maskFunction);
+    } catch (error) {
+      console.log('Error getting energy today all value daily', error);
+      return [];
+    }
+  }
+  private async fetchDeviceParameterTodayAllValueYearly(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+    withPath: boolean = true,
+  ) {
+    try {
+      const { range } = setTimeRange(dateDetails);
+      const { fieldTag, maskFunction } = entityField;
+      const [_, substation, device] = entity.entityTag.split(':');
+      const must: any = [
+        {
+          term: {
+            'DeviceName.keyword': device,
+          },
+        },
+        {
+          range,
+        },
+      ];
+      if (withPath) {
+        const source = await this.source_Service.mapSubToKeyWithSources(
+          this.plant_Id,
+          substation,
+        );
+        must.push({
+          wildcard: {
+            'log.file.path.keyword': `*${source}*`,
+          },
+        });
+      }
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must,
+          },
+        },
+        aggs: {
+          by_year: {
+            date_histogram: {
+              field: 'DateTime',
+              calendar_interval: 'year',
+              time_zone: '+03:30',
+              min_doc_count: 1,
+            },
+            aggs: {
+              first_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'asc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+              last_value: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    {
+                      DateTime: {
+                        order: 'desc',
+                      },
+                    },
+                  ],
+                  _source: {
+                    includes: [fieldTag, 'DateTime', 'DeviceName'],
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elastic_Service.search(
+        this.plant_Index,
+        body,
+      );
+      const mapped: IMappedAllValueResult = [];
+      response.aggregations.by_year.buckets.foreach((item: any) => {
+        const last = item.last_value.hits.hits[0]._source[fieldTag];
+        const first = item.first_value.hits.hits[0]._source[fieldTag];
+        const eToday = last - first;
+        mapped.push({
+          value: eToday,
+          DateTime: item.key_as_string,
+        });
+      });
+    } catch (error) {
+      console.log('Error getting energy today all value yearly', error);
+      return [];
+    }
+  }
+
+  async fetchCountry(): Promise<string> {
+    try {
+      const { value } = await this.entityField_Service.fetchStaticValueByTag(
+        this.plant_Id,
+        'country',
+      );
+      if (!value) return NaN.toString();
+      return value;
+    } catch (error) {
+      console.error(`Error fetching ${this.plant_Tag} Country`, error);
+      return NaN.toString();
+    }
+  }
+  async fetchNominalPower(): Promise<string> {
+    try {
+      const { field } = await this.entityField_Service.fetchStaticValueByTag(
         this.plant_Id,
         'Nominal_Power',
       );
-      if (!field) return NaN;
+      if (!field) return NaN.toString();
       const { unit, staticValue } = field;
-      return unit ? `${staticValue} ${unit}` : staticValue;
+      return unit && staticValue ? `${staticValue} ${unit}` : NaN.toString();
     } catch (error) {
       console.error(`Error fetching ${this.plant_Tag} NominalPower`, error);
-      return NaN;
+      return NaN.toString();
     }
   }
-  async fechDataDelay() {
+  async fetchDataDelay() {
     try {
-      const field = await this.entityField_Service.fetchPlantEntityFieldByTag(
+      const { field } = await this.entityField_Service.fetchStaticValueByTag(
         this.plant_Id,
         'Data_Delay',
       );
-      if (!field) return NaN;
+      if (!field) return NaN.toString();
       const { unit, staticValue } = field;
-      return unit ? `${staticValue} ${unit}` : staticValue;
+      return unit && staticValue ? `${staticValue} ${unit}` : NaN.toString();
     } catch (error) {
-      console.error(`Error fetching ${this.plant_Tag} DataDelay`, error);
-      return NaN;
+      console.error(`Error fetching ${this.plant_Tag} Data_Delay`, error);
+      return NaN.toString();
     }
   }
   async fetchAlert1(): Promise<number> {

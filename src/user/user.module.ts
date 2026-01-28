@@ -7,7 +7,12 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionGuard } from '../rbac/guards/permission.guard';
 import { NestConfigModule } from 'libs/config';
-import { PostgresModule, RedisModule, User } from 'libs/database';
+import {
+  PostgresModule,
+  RedisModule,
+  User,
+  UserEntityAssignment,
+} from 'libs/database';
 import { SettingModule, UserGlobalModule } from 'libs/modules';
 import {
   NOTIFICATION_RABBITMQ_QUEUE,
@@ -22,7 +27,7 @@ import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
   imports: [
     NestConfigModule,
     PostgresModule,
-    UserGlobalModule,
+    forwardRef(() => UserGlobalModule),
     SettingModule,
     RabbitMQModule.register([
       {
@@ -30,7 +35,7 @@ import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
         queue: NOTIFICATION_RABBITMQ_QUEUE,
       },
     ]),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, UserEntityAssignment]),
     RedisModule,
     forwardRef(() => RbacModule),
   ],

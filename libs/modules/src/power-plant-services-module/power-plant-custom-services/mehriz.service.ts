@@ -5,7 +5,7 @@ import {
   EntityField,
   EntityModel,
 } from 'libs/database';
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   EntityFieldService,
   EntityService,
@@ -20,10 +20,9 @@ import { IResponseLastValue } from '../interfaces/base.service.interface';
 import { MaskFunctionService } from '../providers/mask-functions/mask-function.service';
 import { MaskFunctionsEnum } from 'libs/enums';
 import { PlantDayLightService } from '../providers/day-light/day-light.service';
-import { setTimeRange } from 'libs/utils';
+import { getFormattedDateTime, setTimeRange } from 'libs/utils';
 import { IDateDetails, IMappedAllValueResult } from 'libs/interfaces';
 import { ICurve } from '../interfaces/curve.interface';
-
 @Injectable()
 export class MehrizService extends StringPlantService {
   private static readonly PLANT_INDEX = 'mehriz-*';
@@ -69,6 +68,7 @@ export class MehrizService extends StringPlantService {
 
   override async modLastValue(
     entity: EntityModel,
+    entityField: EntityField,
   ): Promise<IResponseLastValue> {
     try {
       const elasticQuery = buildMehrizPowerPlantModQuery();
@@ -317,6 +317,130 @@ export class MehrizService extends StringPlantService {
     } catch (error) {
       console.error(
         `error in ${this.plant_Tag}: modDailyAllValues service `,
+        error,
+      );
+      return this.allValueServicesDefaultExport();
+    }
+  }
+
+  async substationModLastValue(
+    entity: EntityModel,
+    entityField: EntityField,
+  ): Promise<IResponseLastValue> {
+    try {
+      const { entityTag } = entity;
+      const [_, __, device] = entityTag.split(':');
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must: [{ term: { 'DeviceName.keyword': device } }],
+          },
+        },
+        aggs: {
+          last_values: {
+            top_hits: {
+              _source: ['AI0Scaling'],
+              sort: [
+                {
+                  DateTime: {
+                    order: 'desc',
+                  },
+                },
+              ],
+              size: 1,
+            },
+          },
+        },
+      };
+      const response2 = await this.elasticService.search(
+        MehrizService.PLANT_INDEX,
+        body,
+      );
+      const mod =
+        response2.aggregations.last_values.hits.hits[0]._source['AI0Scaling'];
+
+      if (mod === undefined || !mod || mod === 20 || mod === 4)
+        return this.lastValueServicesDefaultExport();
+      const masked = this.maskFunctionService.mask(mod, [
+        MaskFunctionsEnum.ToFixed1,
+        MaskFunctionsEnum.scaleMOD,
+      ]) as number;
+      return {
+        value: masked,
+        Date: getFormattedDateTime(),
+      };
+    } catch (error) {
+      console.error(
+        `error in ${this.plant_Tag} services-substationModLastValue:`,
+        error,
+      );
+      return this.lastValueServicesDefaultExport();
+    }
+  }
+  async substationModAllValues(
+    entity: EntityModel,
+    entityField: EntityField,
+    dateDetails: IDateDetails,
+  ) {
+    try {
+      const { entityTag } = entity;
+      const [_, __, device] = entityTag.split(':');
+      const { range, date_histogram } = setTimeRange(dateDetails);
+      const body = {
+        size: 0,
+        query: {
+          bool: {
+            must: [
+              {
+                term: {
+                  'DeviceName.keyword': device,
+                },
+              },
+              {
+                range,
+              },
+            ],
+          },
+        },
+        aggs: {
+          intervals: {
+            date_histogram,
+            aggs: {
+              avg_moxa: {
+                avg: {
+                  script: {
+                    source: `
+            if (doc['AI0Scaling'].size() > 0 
+                && doc['AI0Scaling'].value != 4 
+                && doc['AI0Scaling'].value != 20) {
+              return doc['AI0Scaling'].value;
+            } 
+            return null;
+          `,
+                  },
+                },
+              },
+            },
+          },
+        },
+      };
+      const response = await this.elasticService.search(
+        MehrizService.PLANT_INDEX,
+        body,
+      );
+      const mapped: IMappedAllValueResult =
+        response.aggregations.intervals.buckets.map((item) => {
+          const mod = item.avg_moxa.value;
+          return {
+            value: mod,
+            Date: item.key_as_string,
+          };
+        });
+      return this.maskFunctionService.mask(mapped, MaskFunctionsEnum.scaleMOD);
+    } catch (error) {
+      console.error(
+        `error in ${this.plant_Tag} services : substationModAllValues `,
         error,
       );
       return this.allValueServicesDefaultExport();

@@ -1,11 +1,9 @@
-import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsPositive } from 'class-validator';
+import { Expose, Transform, Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsPositive, IsUUID } from 'class-validator';
 
 export class EntityIdDto {
-  @Type(() => Number)
+  @Expose({ name: 'entityUuid' })
   @IsNotEmpty()
-  @IsInt()
-  @IsPositive()
-  @Transform(({ value }) => parseInt(value, 10))
-  eId: number;
+  @IsUUID()
+  entity_id: string;
 }

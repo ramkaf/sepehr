@@ -5,24 +5,26 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  Unique,
 } from 'typeorm';
 import { Province } from '../province.entity';
 import { SchemaEntity } from '../../decorators';
 import { Company } from '../company.entity';
 
+@Unique(['company', 'name'])
 @SchemaEntity('maintenance', 'company_warehouses')
 export class CompanyWarehouse {
   @PrimaryGeneratedColumn({ name: 'warehouse_id' })
   warehouseId: number;
 
-  @Column({ name: 'company_id', type: 'int', nullable: true })
-  companyId?: number;
+  @Column({ name: 'company_id', type: 'int' })
+  companyId: number;
 
   @ManyToOne(() => Company, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'company_id' })
-  company?: Company;
+  company: Company;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
   @Column({ type: 'text', nullable: true })

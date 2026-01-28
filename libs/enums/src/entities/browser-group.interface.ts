@@ -7,4 +7,5 @@ export enum BrowserGroupEnum {
   SETTING = 'Settings',
   INACTIVE = 'InActive',
   SUBSCRIPTION = 'Subscription',
+  ASSETS = 'Assets',
 }

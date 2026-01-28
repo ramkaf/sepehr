@@ -35,13 +35,13 @@ import {
 @Injectable()
 export class PasswordService {
   private readonly saltRounds: number;
-
   constructor(
     @Inject(forwardRef(() => UserService))
     private readonly userService: UserService,
     @Inject(NOTIFICATION_RABBITMQ_SERVICE)
     private readonly rabbitmqService: ClientProxy,
     private readonly settingService: SettingService,
+    @Inject(forwardRef(() => UserGlobalService))
     private readonly userGlobalService: UserGlobalService,
     private readonly configService: NestConfigService,
     private readonly redisService: RedisService,

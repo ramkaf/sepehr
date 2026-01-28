@@ -15,11 +15,11 @@ export class WarehouseDevice {
   id: number;
 
   @Column({ name: 'warehouse_id', type: 'int', nullable: true })
-  warehouseId?: number;
+  warehouse_id: number;
 
   @ManyToOne(() => CompanyWarehouse, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'warehouse_id' })
-  warehouse?: CompanyWarehouse;
+  warehouse: CompanyWarehouse;
 
   @Column({
     name: 'serial_number',
@@ -27,7 +27,7 @@ export class WarehouseDevice {
     length: 255,
     nullable: true,
   })
-  serialNumber?: string;
+  serial_number?: string;
 
   @Column({
     name: 'product_number',
@@ -35,7 +35,7 @@ export class WarehouseDevice {
     length: 255,
     nullable: true,
   })
-  productNumber?: string;
+  product_number?: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   model?: string;
@@ -46,7 +46,7 @@ export class WarehouseDevice {
     length: 255,
     nullable: true,
   })
-  displayName?: string;
+  display_name?: string;
 
   @Column({ type: 'timestamptz', nullable: true })
   removed?: Date;
@@ -63,12 +63,12 @@ export class WarehouseDevice {
     type: 'timestamptz',
     default: () => 'now()',
   })
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
     type: 'timestamptz',
     default: () => 'now()',
   })
-  updatedAt: Date;
+  updated_at: Date;
 }
