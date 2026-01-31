@@ -18,7 +18,9 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules src/main.ts",
-    "dev:debug": "ts-node-dev --respawn --transpile-only --inspect=0.0.0.0:9229 --ignore-watch node_modules src/main.ts"
+    "dev:debug": "ts-node-dev --respawn --transpile-only --inspect=0.0.0.0:9229 --ignore-watch node_modules src/main.ts",
+    "migration:run": "ts-node libs/database/src/postgresql/run-migration.ts"
+    
   },
   "dependencies": {
     "@elastic/elasticsearch": "8.13.1",

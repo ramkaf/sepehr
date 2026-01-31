@@ -10,7 +10,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DeviceSpec, Spec } from 'libs/database';
+import { DeviceSpec } from 'libs/database';
 import { Repository } from 'typeorm';
 import { EntityTypeBaseService } from '../../entity-types/providers/entity-type.base.service';
 import { MaintenanceSpecService } from './maintenance-spec.service';
@@ -38,10 +38,10 @@ export class MaintenanceDeviceSpecService extends BaseService<DeviceSpec> {
     const { spec_id } = createDeviceSpecDto;
     const entity_type = await this.entityTypeService.findOne(entity_type_id);
     if (!entity_type) throw new NotFoundException('entity type not found');
-    const spec = await this.specService.findOne(spec_id);
-    if (!spec) throw new NotFoundException(ERROR_MESSAGES.SPEC_NOT_FOUND);
+    const specs = await this.specService.findOne(spec_id);
+    if (!specs) throw new NotFoundException(ERROR_MESSAGES.SPEC_NOT_FOUND);
     const specSchema = this.maintenanceDeviceSpecRepository.create({
-      spec,
+      specs,
       entity_type,
     });
     const specification =
@@ -64,10 +64,10 @@ export class MaintenanceDeviceSpecService extends BaseService<DeviceSpec> {
         },
       },
       relations: {
-        spec: true,
+        specs: true,
       },
       order: {
-        spec: {
+        specs: {
           spec_key: 'ASC',
         },
       },
@@ -80,7 +80,7 @@ export class MaintenanceDeviceSpecService extends BaseService<DeviceSpec> {
     if (!entity_type) throw new NotFoundException('entity uuid is invalid');
     return await this.maintenanceDeviceSpecRepository.findOne({
       where: {
-        spec: {
+        specs: {
           spec_key,
         },
         entity_type,

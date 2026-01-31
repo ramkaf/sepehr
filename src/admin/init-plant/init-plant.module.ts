@@ -30,7 +30,7 @@ import {
   RedisModule,
   Source,
 } from 'libs/database';
-import { ApiLoggerService, ResponseFormatterService } from 'libs/logger';
+import { ResponseFormatterService } from 'libs/logger';
 import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
 // import { CustomThrottlerGuard } from '@app/guards';
 
@@ -61,7 +61,6 @@ import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
   controllers: [InitPlantController, RevertInitPlantContrller],
   providers: [
     ResponseFormatterService,
-    ApiLoggerService,
     InitPlantService,
     RevertInitPlantService,
     {

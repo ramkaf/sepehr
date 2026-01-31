@@ -18,11 +18,10 @@ import {
   SchematicCategory,
 } from 'libs/database';
 import { EntityModule, InsightModule, UserGlobalModule } from 'libs/modules';
-import { ApiLoggerService, ResponseFormatterService } from 'libs/logger';
+import { ResponseFormatterService } from 'libs/logger';
 import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
 import { NestConfigModule } from 'libs/config';
 // import { CustomThrottlerGuard } from 'libs/guards';
-
 @Module({
   imports: [
     NestConfigModule,
@@ -45,7 +44,6 @@ import { NestConfigModule } from 'libs/config';
   controllers: [SchematicDashboardController, SchematicAdminController],
   providers: [
     ResponseFormatterService,
-    ApiLoggerService,
     SchematicService,
     {
       provide: APP_GUARD,

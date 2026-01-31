@@ -10,7 +10,6 @@ import {
   MediaResource,
   PostgresModule,
   RedisModule,
-  Spec,
   Warranty,
 } from 'libs/database';
 import { MaintenanceStepService } from './providers/maintenance-step.service';
@@ -29,6 +28,7 @@ import { MediaResourceModule } from '../media-resource/media-resource.module';
 import { EntityModule } from '../entity/entity.module';
 import { CompanyModule } from '../company/company.module';
 import { NestConfigModule } from 'libs/config';
+import { Specs } from '@app/database/postgresql/entities/maintenance/specs.entity';
 
 @Module({
   imports: [
@@ -37,7 +37,7 @@ import { NestConfigModule } from 'libs/config';
     RedisModule,
     ElasticModule.register(),
     TypeOrmModule.forFeature([
-      Spec,
+      Specs,
       MaintenanceStep,
       DeviceMaintenance,
       MaintenanceHistory,

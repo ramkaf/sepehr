@@ -3,15 +3,15 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-  HttpException,
-  Logger,
+  Inject,
 } from '@nestjs/common';
-import { Observable, throwError } from 'rxjs';
-import { catchError, map, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, mergeMap, tap } from 'rxjs/operators';
 import { Request, Response } from 'express';
 import { ResponseFormatterService } from '../providers/response-formatter.service';
 import { IResponse } from '../interfaces/response.interface';
-import { ApiLoggerService } from '../providers/api-logger.service';
+import { RedisService } from 'libs/database';
+import { DataSource } from 'typeorm';
 
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<
@@ -19,34 +19,43 @@ export class ResponseInterceptor<T> implements NestInterceptor<
   IResponse<T>
 > {
   constructor(
-    private apiLoggerService: ApiLoggerService,
-    private responseFormatter: ResponseFormatterService,
+    @Inject('DATA_SOURCE') private dataSource: DataSource,
+    private readonly redisService: RedisService,
   ) {}
-
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-    const logger = new Logger(ResponseInterceptor.name);
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<Request>();
     const response = httpContext.getResponse<Response>();
     const statusCode = response.statusCode;
     const startTime = Date.now();
-    const apiLog = this.apiLoggerService.createLogEntry(request, response);
+
     return next.handle().pipe(
-      tap((data) => {
-        this.apiLoggerService.updateLogWithResponseAndDuration(apiLog, data);
-        if (request.method !== 'GET') {
-          apiLog.responseTime = Date.now() - startTime;
-          this.apiLoggerService.saveLog(apiLog);
-        }
-      }),
-      map((data: T) =>
-        this.responseFormatter.formatSuccess(
+      mergeMap(async (data: T) => {
+        // call your async function here
+        const pks = await this.getPrimaryKeys();
+        console.log({pks});
+        
+        return {
+          success: true,
+          message: 'عملیات با موفقیت انجام شد',
           data,
-          request,
+          primaryKeys: pks, // include your async data
+          timestamp: new Date().toISOString(),
+          path: request.method,
           statusCode,
-          startTime,
-        ),
-      ),
+          error: null,
+          responseTime: Date.now() - startTime,
+        };
+      }),
     );
+  }
+  async getPrimaryKeys() {
+    let primaryKeys = await this.redisService.getObject('cached_primary_key');
+    if (!primaryKeys) {
+      const query = `SELECT table_name, primary_key_field FROM main.primary_key_parameter;`;
+      const result = await this.dataSource.manager.query(query, []);
+      await this.redisService.setObject('cached_primary_key', result);
+      return result;
+    }
   }
 }

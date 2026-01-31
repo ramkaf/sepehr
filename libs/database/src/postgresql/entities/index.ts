@@ -39,3 +39,4 @@ export * from './plant-type.entity';
 export * from './province.entity';
 export * from './maintenance';
 export * from './media-resource.entity';
+export * from './primary-keys.entity';

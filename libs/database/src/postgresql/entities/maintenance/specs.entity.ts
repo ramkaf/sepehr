@@ -9,10 +9,10 @@ import { SchemaEntity } from '../../decorators';
 import { DeviceSpec } from './device-spec.entity';
 import { MediaResource } from '../media-resource.entity';
 
-@SchemaEntity('maintenance', 'specs')
-export class Spec {
-  @PrimaryGeneratedColumn({ name: 'id' })
-  id: number;
+@SchemaEntity('maintenance', 'spec')
+export class Specs {
+  @PrimaryGeneratedColumn({ name: 'spec_id' })
+  spec_id: number;
 
   @Column({
     type: 'varchar',
@@ -32,18 +32,18 @@ export class Spec {
   })
   spec_title: string;
 
-  @Column({
-    name: 'media_id',
-    type: 'int',
-    nullable: true,
-    default: null,
-  })
+  @Column({ name: 'media_id', type: 'int', nullable: true })
   media_id?: number;
 
-  @ManyToOne(() => MediaResource, { onDelete: 'SET NULL' })
+  @ManyToOne(() => MediaResource, (md) => md.mr_id, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'media_id' })
   media?: MediaResource;
 
+  @OneToMany(() => DeviceSpec, (pm) => pm.specs)
+  deviceSpecs: DeviceSpec[];
   @Column({
     type: 'uuid',
     default: () => 'gen_random_uuid()',

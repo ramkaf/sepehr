@@ -1,6 +1,6 @@
 import { ClassSerializerInterceptor, Module } from '@nestjs/common';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
-import { ElasticModule, PostgresModule } from 'libs/database';
+import { ElasticModule, PostgresModule, RedisModule } from 'libs/database';
 import {
   ADMIN_DASHBOARD_RABBITMQ_QUEUE,
   ADMIN_DASHBOARD_RABBITMQ_SERVICE,
@@ -9,7 +9,6 @@ import {
   RabbitMQModule,
 } from '@app/modules/messaging';
 import {
-  ApiLoggerService,
   ResponseFormatterService,
   ResponseInterceptor,
 } from 'libs/logger';
@@ -28,6 +27,7 @@ import { NotificationModule } from './notification/notification.module';
   imports: [
     NestConfigModule,
     PostgresModule,
+    RedisModule,
     ElasticModule.register(),
     RabbitMQModule.register([
       {
@@ -48,7 +48,6 @@ import { NotificationModule } from './notification/notification.module';
     NotificationModule,
   ],
   providers: [
-    ApiLoggerService,
     ResponseFormatterService,
     {
       provide: APP_INTERCEPTOR,

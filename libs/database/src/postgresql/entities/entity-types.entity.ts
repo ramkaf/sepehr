@@ -58,15 +58,14 @@ export class EntityType {
   plant?: EntityModel;
 
   @Column({ name: 'schc_id', type: 'int', nullable: true, default: null })
-  schematicId: number | null;
+  schematicId?: number | null;
 
-  // NEW: Relation to EntityModel where plant_id refers to eId
-  @ManyToOne(() => SchematicCategory, (schc) => schc.entityTypes, {
-    nullable: true,
-    onDelete: 'SET NULL',
+  @ManyToOne(() => SchematicCategory, (category) => category.entityTypes, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
   })
   @JoinColumn({ name: 'schc_id' })
-  schematic: Schematic | null;
+  schematic?: SchematicCategory;
 
   @OneToOne(() => EntityTypeFieldSetupStatus, (fm) => fm.entityType, {
     cascade: true,

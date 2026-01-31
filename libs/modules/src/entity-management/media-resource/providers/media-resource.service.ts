@@ -1,11 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import {
-  DeviceTagMapping,
-  EntityType,
-  MediaResource,
-  Spec,
-} from 'libs/database';
-import { In, Repository } from 'typeorm';
+import { MediaResource } from 'libs/database';
+import { Repository } from 'typeorm';
 import { BaseService } from '../../common/providers/base.service';
 import { InjectRepository } from '@nestjs/typeorm';
 

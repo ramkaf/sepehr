@@ -6,10 +6,8 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { MediaResource } from '../media-resource.entity';
 import { SchemaEntity } from '../../decorators';
-import { EntityModel } from '../entity.entity';
-import { Spec } from './spec.entity';
+import { Specs } from './specs.entity';
 import { EntityType } from '../entity-types.entity';
 
 @SchemaEntity('maintenance', 'device_specs')
@@ -20,16 +18,19 @@ export class DeviceSpec {
   @Column({ name: 'entity_type_id', type: 'int' })
   entity_type_id: number;
 
-  @ManyToOne(() => EntityModel, { onDelete: 'CASCADE' })
+  @ManyToOne(() => EntityType, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'entity_type_id' })
   entity_type: EntityType;
 
   @Column({ name: 'spec_id', type: 'int' })
   spec_id: number;
 
-  @ManyToOne(() => Spec, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Specs, (s) => s.spec_id, {
+    onDelete: 'CASCADE',
+    onUpdate: 'CASCADE',
+  })
   @JoinColumn({ name: 'spec_id' })
-  spec: Spec;
+  specs: Specs;
 
   @Column({ name: 'spec_value', type: 'varchar', length: 255, nullable: true })
   spec_value?: string;

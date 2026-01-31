@@ -40,8 +40,8 @@ import {
   EntityFieldSchema,
   UserEntityAssignment,
   Schematic,
-  Spec,
   DeviceMaintenance,
+  PrimaryKeyParameter,
 } from './entities';
 import { PlantFieldVisibility } from './entities/plant-field-visibility.entity';
 import { EntityTypeFieldSetupStatus } from './entities/entity-type-field-setup-status.entity.dto';
@@ -60,6 +60,7 @@ import { DeviceSpec } from './entities/maintenance/device-spec.entity';
 import { FleetManagerColumns } from './entities/fleet-manager-columns.entity';
 import { UserFleetColumnsPreferences } from './entities/user-fleet-columns-preferences.entity';
 import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entity';
+import { Specs } from './entities/maintenance/specs.entity';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entit
         password: configService.pgPassword,
         database: configService.pgDb,
         entities: [
+          SchematicCategory,
           AccessType,
           SettingSection,
           Settings,
@@ -112,7 +114,6 @@ import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entit
           EntityTypeFieldSetupStatus,
           UserEntityAssignment,
           Schematic,
-          SchematicCategory,
           SoilingEntities,
           SoilingEntityFields,
           Province,
@@ -123,12 +124,13 @@ import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entit
           MaintenanceHistory,
           Warranty,
           DeviceTagMapping,
-          Spec,
+          Specs,
           DeviceSpec,
           FleetManagerColumns,
           UserFleetColumnsPreferences,
           CompanyWarehouse,
           DeviceMaintenance,
+          PrimaryKeyParameter,
         ],
         synchronize: false,
         logging: false,
@@ -163,9 +165,9 @@ export class PostgresModule implements OnModuleInit {
     try {
       await this.ensureSchemasExist();
 
-      if (process.env['NODE_ENV'] !== 'production') {
-        await this.dataSource.synchronize();
-      }
+      // if (process.env['NODE_ENV'] !== 'production') {
+      //   await this.dataSource.synchronize();
+      // }
       // await this.ensureEntityTypeSequenceStartsAt233();
       // await this.ensureEntitySequenceStartsAt944();
       // await this.ensureEntityFieldSequenceStartsAt4372();

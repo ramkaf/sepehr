@@ -3,7 +3,7 @@ import { SchemaEntity } from '../decorators/schema-entity.decorator';
 import { Exclude } from 'class-transformer';
 import { EntityType } from './entity-types.entity';
 
-@SchemaEntity('main', 'Schematic_category')
+@SchemaEntity('main', 'schematic_category')
 export class SchematicCategory {
   @Exclude()
   @PrimaryGeneratedColumn({ name: 'id' })

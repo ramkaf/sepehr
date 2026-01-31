@@ -31,8 +31,7 @@ import {
   NOTIFICATION_RABBITMQ_SERVICE,
   RabbitMQModule,
 } from '@app/modules/messaging';
-import { AccessTypeEnum, SettingKeysEnum } from 'libs/enums';
-import { ApiLoggerService, ResponseFormatterService } from 'libs/logger';
+import {  ResponseFormatterService } from 'libs/logger';
 // import {StringValue} from 'jsonwe'
 @Module({
   imports: [
@@ -105,7 +104,6 @@ import { ApiLoggerService, ResponseFormatterService } from 'libs/logger';
   ],
   providers: [
     ResponseFormatterService,
-    ApiLoggerService,
     AuthService,
     LocalStrategy,
     JwtStrategy,

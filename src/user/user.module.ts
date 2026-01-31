@@ -19,7 +19,7 @@ import {
   NOTIFICATION_RABBITMQ_SERVICE,
   RabbitMQModule,
 } from '@app/modules/messaging';
-import { ApiLoggerService, ResponseFormatterService } from 'libs/logger';
+import { ResponseFormatterService } from 'libs/logger';
 import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
 // import { CustomThrottlerGuard } from '@app/guards';
 
@@ -41,7 +41,6 @@ import { HttpExceptionFilter, ThrottlerExceptionFilter } from 'libs/filters';
   ],
   providers: [
     ResponseFormatterService,
-    ApiLoggerService,
     UserService,
     PasswordService,
     {

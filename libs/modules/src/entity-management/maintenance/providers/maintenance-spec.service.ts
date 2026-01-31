@@ -1,5 +1,4 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Spec } from 'libs/database';
 import { Repository } from 'typeorm';
 import { BaseService } from '../../common/providers/base.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -7,12 +6,13 @@ import { CreateSpecEntryDto, UpdateSpecEntryDto } from '@app/dtos/maintenance';
 import { MediaResourceService } from '../../media-resource/providers/media-resource.service';
 import { SpecIdDto } from 'libs/dtos';
 import { ERROR_MESSAGES } from 'libs/constants';
+import { Specs } from '@app/database/postgresql/entities/maintenance/specs.entity';
 
 @Injectable()
-export class MaintenanceSpecService extends BaseService<Spec> {
+export class MaintenanceSpecService extends BaseService<Specs> {
   constructor(
-    @InjectRepository(Spec)
-    private readonly specRepository: Repository<Spec>,
+    @InjectRepository(Specs)
+    private readonly specRepository: Repository<Specs>,
     private readonly mediaResourceService: MediaResourceService,
   ) {
     super(specRepository, 'spec');

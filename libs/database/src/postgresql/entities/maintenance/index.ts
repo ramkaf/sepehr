@@ -6,4 +6,4 @@ export * from './device-warranties.entity';
 export * from './maintenance-history';
 export * from './maintenance-step.entity';
 export * from './warehouse-devices.entity';
-export * from './spec.entity';
+export * from './specs.entity';

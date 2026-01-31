@@ -26,7 +26,19 @@ import { UserComponentsConfig } from './entities/components.entity';
 import { Permission } from './entities/permissions.entity';
 import { ApiLog } from './entities/log.entity';
 import { Source } from './entities/sources.entity';
-import { DeviceMaintenance, Schematic, Spec } from './entities';
+import {
+  AccessType,
+  AccessTypeSetting,
+  DeviceMaintenance,
+  EntityFieldSchema,
+  EntityTypeFieldSetupStatus,
+  PlantFieldVisibility,
+  PrimaryKeyParameter,
+  Role,
+  Schematic,
+  SettingSection,
+  UserEntityAssignment,
+} from './entities';
 import { SchematicCategory } from './entities/schematic-category.entity';
 import { Province } from './entities/province.entity';
 import { PlantType } from './entities/plant-type.entity';
@@ -41,6 +53,10 @@ import { DeviceSpec } from './entities/maintenance/device-spec.entity';
 import { FleetManagerColumns } from './entities/fleet-manager-columns.entity';
 import { UserFleetColumnsPreferences } from './entities/user-fleet-columns-preferences.entity';
 import { CompanyWarehouse } from './entities/maintenance/company-warehouse.entity';
+import { Specs } from './entities/maintenance/specs.entity';
+import { SoilingEntityFields } from './entities/soiling-entity-fields.entity';
+import { SoilingEntities } from './entities/soiling-entities.entity';
+import { Settings } from 'luxon';
 
 dotenv.config(); // Load .env values
 
@@ -52,15 +68,25 @@ export const AppDataSource = new DataSource({
   password: process.env['POSTGRES_PASSWORD'] || 'postgres',
   database: process.env['POSTGRES_DB'] || 'postgres',
   synchronize: false, // set true only for dev
-  logging: false,
+  logging: true,
+  migrations: ['libs/database/src/postgresql/migrations/**/*.ts'],
+  migrationsTableName: 'migrations',
+  migrationsRun: false,
   entities: [
-    Source,
+    SchematicCategory,
+    AccessType,
+    SettingSection,
+    Settings,
+    AccessTypeSetting,
+    Role,
+    Permission,
     User,
     ApiLog,
     Permission,
     UserComponentsConfig,
     EntityType,
     EntityModel,
+    Source,
     FleetManager,
     EntityField,
     Chart,
@@ -79,22 +105,27 @@ export const AppDataSource = new DataSource({
     CollectionEntity,
     DocumentEntity,
     BrowserGroupEntity,
+    EntityFieldSchema,
+    PlantFieldVisibility,
+    EntityTypeFieldSetupStatus,
+    UserEntityAssignment,
     Schematic,
-    SchematicCategory,
+    SoilingEntities,
+    SoilingEntityFields,
     Province,
     PlantType,
     Company,
     MediaResource,
-    WarehouseDevice,
     MaintenanceStep,
     MaintenanceHistory,
     Warranty,
     DeviceTagMapping,
+    Specs,
     DeviceSpec,
     FleetManagerColumns,
     UserFleetColumnsPreferences,
     CompanyWarehouse,
-    Spec,
     DeviceMaintenance,
+    PrimaryKeyParameter,
   ],
 });
